@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self'; style-src 'self'; script-src 'self'" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>workFeiBi 设置</title>
+  <link rel="stylesheet" href="settings.css" />
+</head>
+<body>
+  <main>
+    <header><div><small>WORK · REST · REPEAT</small><h1>workFeiBi</h1><p>菲比啾比学习监督桌宠</p></div><img id="portrait" src="../assets/images/phoebe_1.png" alt="菲比啾比" /></header>
+    <section class="timer-card">
+      <span id="phase">准备学习</span>
+      <strong id="time">25:00</strong>
+      <div class="actions"><button id="toggle" class="primary">开始专注</button><button id="skip">跳过</button><button id="reset">重置</button></div>
+    </section>
+    <section class="settings-grid">
+      <label>学习时长（分钟）<input id="studyMinutes" type="number" min="1" max="240" /></label>
+      <label>休息时长（分钟）<input id="restMinutes" type="number" min="1" max="120" /></label>
+      <label>未响应后生气（秒）<input id="angryAfterSeconds" type="number" min="10" max="600" /></label>
+      <label>桌宠大小（%）<input id="petScale" type="range" min="70" max="150" step="5" /><output id="petScaleValue">100%</output></label>
+    </section>
+    <section class="switches">
+      <label><input id="soundEnabled" type="checkbox" /> 提醒与互动时播放“菲比啾比”语音</label>
+      <label><input id="idleMotion" type="checkbox" /> 自动播放待机动作</label>
+      <label>形象 <select id="outfit"><option value="1">戴帽啾比</option><option value="0">摘帽啾比</option><option value="2">节日啾比</option></select></label>
+      <label>音量 <input id="volume" type="range" min="0" max="100" /></label>
+    </section>
+    <button id="save" class="save">保存设置</button>
+    <p id="rounds">本次完成 0 轮专注</p>
+    <button id="preview">试听啾比语音</button>
+    <p class="note">时长设置在下一轮生效；要立即应用，请保存后重置。关闭设置窗口后桌宠仍在。Ctrl+Shift+F 可隐藏/显示。</p>
+    <footer>拖动桌宠可移动位置 · 单击互动/确认 · 双击打开设置 · 右键显示菜单</footer>
+  </main>
+  <script src="settings.js"></script>
+</body>
+</html>

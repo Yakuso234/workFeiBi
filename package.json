@@ -1,0 +1,17 @@
+{
+  "name": "workfeibi",
+  "version": "1.0.0",
+  "private": true,
+  "description": "可拖动的菲比啾比学习计时桌宠",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test test/*.test.js",
+    "build": "node scripts/build.js",
+    "smoke": "electron . --smoke-test",
+    "check": "node --check src/main.js && node --check src/preload.js && node --check src/pet.js && node --check src/settings.js"
+  },
+  "devDependencies": {
+    "electron": "44.4.3"
+  }
+}
