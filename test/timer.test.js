@@ -1,6 +1,18 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const {Timer,sanitize}=require('../src/timer');
+test('重启恢复暂停进度，不静默开始或改变本轮时长',()=>{
+ const t=new Timer();t.toggle(0);t.update(120000);t.configure({studyMinutes:45});
+ const restored=new Timer(t.settings);restored.restore(t.serialize());
+ assert.equal(restored.running,false);assert.equal(restored.remaining,1380);assert.equal(restored.sessionSeconds,1500);
+ restored.toggle(200000);assert.equal(restored.deadline,1580000);
+});
+test('恢复未确认提醒与角色设置校验',()=>{
+ const t=new Timer({character:'nuonuo'});t.toggle(0);t.update(1560000);
+ const restored=new Timer(t.settings);restored.restore(t.serialize());
+ assert.equal(restored.reminding,true);assert.equal(restored.angry,true);assert.equal(restored.rounds,1);
+ assert.equal(sanitize({character:'../bad'}).character,'phoebe');assert.equal(sanitize({character:'nuonuo'}).character,'nuonuo');
+});
 test('完整学习、等待60秒、生气、确认休息与返回学习',()=>{
  const t=new Timer({studyMinutes:1,restMinutes:1});t.toggle(0);
  assert.equal(t.update(60000),'reminder');assert.equal(t.rounds,1);

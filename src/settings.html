@@ -9,12 +9,34 @@
 </head>
 <body>
   <main>
-    <header><div><small>WORK · REST · REPEAT</small><h1>workFeiBi</h1><p>菲比啾比学习监督桌宠</p></div><img id="portrait" src="../assets/images/phoebe_1.png" alt="菲比啾比" /></header>
+    <div class="system-bar"><span>NC // PERSONAL LINK</span><span>● LOCAL ONLY</span></div>
+    <header><div><small>FOCUS PROTOCOL / 2077</small><h1>workFeiBi<span>_</span></h1><p>夜之城 · 专注陪伴终端</p><b class="tag">EDGERUNNER MODE</b></div><img id="portrait" src="../assets/images/phoebe_1.png" alt="菲比啾比" /></header>
+    <p id="storageWarning" class="warning" role="alert" hidden></p>
+    <nav class="tabs" aria-label="终端页面"><button data-tab="dashboard" aria-pressed="true">01 / 专注舱</button><button data-tab="journal" aria-pressed="false">02 / 任务档案</button><button data-tab="config" aria-pressed="false">03 / 参数配置</button></nav>
+    <div id="dashboard" class="tab-panel">
     <section class="timer-card">
+      <div class="section-label">01 / NEURAL TIMER <span>连接稳定</span></div>
       <span id="phase">准备学习</span>
       <strong id="time">25:00</strong>
+      <progress id="sessionProgress" max="100" value="0" aria-label="本轮进度"></progress>
       <div class="actions"><button id="toggle" class="primary">开始专注</button><button id="skip">跳过</button><button id="reset">重置</button></div>
     </section>
+    <section class="companion-card">
+      <div class="section-label">02 / COMPANION LINK <span id="bond">本次互动 0 次</span></div>
+      <p id="companionStatus" role="status">菲比正在陪你。今天也一起认真一点点。</p>
+      <div class="actions"><button data-interact="pat">♡ 摸摸头</button><button data-interact="feed">◇ 喂点心</button><button data-interact="stretch">↗ 伸懒腰</button></div>
+      <div class="extra-actions"><button data-interact="sleep">☾ 打个盹</button><button data-interact="turn" id="turnButton" hidden>↻ 转身看看</button></div>
+      <p class="pending" id="characterNote">角色信号：菲比啾比 ONLINE</p>
+    </section>
+    <div class="stat-grid"><section><small>今日完成</small><strong id="todayRounds">0</strong><span>轮专注</span></section><section><small>完整轮次计时</small><strong id="todayMinutes">0</strong><span>分钟</span></section><section><small>每日目标</small><strong id="goalProgress">0 / 4</strong><span id="goalMessage">从一轮开始</span></section></div>
+    <p id="rounds">累计完成 0 轮专注</p>
+    </div>
+    <div id="journal" class="tab-panel" hidden>
+      <section class="companion-card"><h2 class="section-label">WEEKLY / 最近七天</h2><div id="weekChart" class="week-chart"></div><p class="note">只统计完整结束的学习轮次，跳过与重置不计入。计时包含系统休眠，不代表实际学习监测。</p></section>
+      <section class="companion-card"><h2 class="section-label">MISSIONS / 给今天一个小目标</h2><form id="taskForm"><input id="taskText" maxlength="100" placeholder="例如：完成两道数组题" aria-label="新任务" required /><button type="submit">＋ 添加</button></form><p id="taskStatus" class="note" role="status"></p><ul id="taskList"></ul></section>
+    </div>
+    <div id="config" class="tab-panel" hidden>
+    <h2 class="section-label">03 / PROTOCOL SETTINGS</h2>
     <section class="settings-grid">
       <label>学习时长（分钟）<input id="studyMinutes" type="number" min="1" max="240" /></label>
       <label>休息时长（分钟）<input id="restMinutes" type="number" min="1" max="120" /></label>
@@ -22,16 +44,20 @@
       <label>桌宠大小（%）<input id="petScale" type="range" min="70" max="150" step="5" /><output id="petScaleValue">100%</output></label>
     </section>
     <section class="switches">
-      <label><input id="soundEnabled" type="checkbox" /> 提醒与互动时播放“菲比啾比”语音</label>
+      <label>角色 <select id="character"><option value="phoebe">菲比啾比 · 原素材</option><option value="nuonuo">弗糯糯 · 参考重绘试用版</option></select></label>
+      <label><input id="soundEnabled" type="checkbox" /> 提醒时播放音效（菲比语音 / 弗糯糯提示音）</label>
       <label><input id="idleMotion" type="checkbox" /> 自动播放待机动作</label>
       <label>形象 <select id="outfit"><option value="1">戴帽啾比</option><option value="0">摘帽啾比</option><option value="2">节日啾比</option></select></label>
       <label>音量 <input id="volume" type="range" min="0" max="100" /></label>
+      <label>每日目标（轮）<input id="dailyGoal" type="number" min="1" max="20" /></label>
     </section>
     <button id="save" class="save">保存设置</button>
-    <p id="rounds">本次完成 0 轮专注</p>
-    <button id="preview">试听啾比语音</button>
+    <button id="preview">试听当前角色音效</button>
+    <button id="importVoice">导入当前角色音效</button>
+    <p id="voiceStatus" class="note" role="status">支持 MP3 / WAV / OGG，最大 5 MB，仅保存在本机，不上传。</p>
     <p class="note">时长设置在下一轮生效；要立即应用，请保存后重置。关闭设置窗口后桌宠仍在。Ctrl+Shift+F 可隐藏/显示。</p>
-    <footer>拖动桌宠可移动位置 · 单击互动/确认 · 双击打开设置 · 右键显示菜单</footer>
+    </div>
+    <footer><b>STAY FOCUSED. STAY HUMAN.</b><br>拖动移动 · 单击互动/确认 · 双击设置 · 右键菜单<br>Ctrl+Shift+F 隐藏/显示 · 关闭终端后桌宠继续陪伴<br>非官方同人终端 · Cyberpunk / Edgerunners 风格致意</footer>
   </main>
   <script src="settings.js"></script>
 </body>

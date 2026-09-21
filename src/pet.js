@@ -2,6 +2,10 @@ const $ = id => document.getElementById(id);
 const root = $('petRoot'), stage = $('petStage'), image = $('petImage');
 let state, audio, dragging = false, dragged = false, start, clickTimer;
 let motion = '', motionUntil = 0, lastHit = true, maskReady = false;
+let speech='', speechUntil=0;
+let audioContext,tones=[];
+let soundRequest=0;
+let selectedVoice=0;
 const mask = document.createElement('canvas');
 mask.width = 500; mask.height = 500;
 const maskCtx = mask.getContext('2d', {willReadFrequently:true});
@@ -12,17 +16,67 @@ function pose(name, duration=1800) {
 function paintMotion() {
   if(!state)return;
   const t=state.timer, s=state.settings;
-  const active=t.angry?'angry':dragging?'lifted':s.idleMotion?(Date.now()<motionUntil?motion:'idle'):'';
+  const active=t.angry?'angry':dragging?'lifted':Date.now()<motionUntil?motion:s.idleMotion?'idle':'';
   const classes=`pet-stage ${active}`;
   if(stage.className!==classes)stage.className=classes;
   $('emotion').textContent=t.angry?'💢':active==='sleep'?'z Z':active==='happy'?'♡':'';
+  const poseName=active==='sleep'?'sleep':active==='turn'?'back':'front';
+  const limbPose=['wave','kick','stretch','blink'].includes(active);
+  const portrait=s.character==='nuonuo'?`../assets/images/nuonuo_${limbPose?'wave':poseName}.png`:limbPose?'../assets/images/phoebe_wave.png':`../assets/images/phoebe_${s.outfit}.png`;
+  if(image.getAttribute('src')!==portrait){maskReady=false;image.src=portrait;}
 }
-function stopAudio(){if(audio){audio.pause();audio.currentTime=0;}}
-function sound() {
-  if(!state?.settings.soundEnabled)return;
+function stopAudio(){soundRequest++;if(audio){audio.pause();audio.currentTime=0;}if('speechSynthesis' in window)speechSynthesis.cancel();for(const tone of tones)try{tone.stop();}catch{}tones=[];}
+function speak(text,{pitch=1,rate=1,voiceShift=true}={}){
+  if(!('speechSynthesis' in window))return false;
+  const utterance=new SpeechSynthesisUtterance(text);
+  const chinese=speechSynthesis.getVoices().filter(voice=>/^zh(?:-|_)/i.test(voice.lang));
+  if(chinese.length){
+    if(voiceShift)selectedVoice=(selectedVoice+1)%chinese.length;
+    utterance.voice=chinese[selectedVoice];
+  }
+  utterance.lang='zh-CN';utterance.volume=state.settings.volume/100;utterance.pitch=pitch;utterance.rate=rate;
+  try{speechSynthesis.speak(utterance);return true;}catch{return false;}
+}
+async function sound(cue='preview') {
+  if(!state?.settings.soundEnabled||state.settings.volume<=0)return;
   stopAudio();
+  const request=soundRequest,character=state.settings.character;
+  if(state.voices?.[character]){
+    try{
+      const src=await window.workFeiBi.getVoice(character);
+      if(request!==soundRequest||!state.settings.soundEnabled)return;
+      if(src){audio=new Audio(src);audio.volume=state.settings.volume/100;audio.play().catch(()=>{speech='音频无法播放，请换一个有效音频文件。';speechUntil=Date.now()+5000;});return;}
+    }catch(error){console.warn('读取自定义音效失败',error.message);}
+  }
+  if(request!==soundRequest||!state.settings.soundEnabled)return;
+  if(state.settings.character==='nuonuo'){
+    // "糯糯" is deliberately re-spoken for each cue.  Installed Chinese
+    // voices are rotated when available; pitch and pace make reminders feel
+    // different without bundling an unlicensed fan recording.
+    const variations=cue==='angry'?[[.82,.86],[1.08,.98],[1.36,1.12]]:[[1.22,1.05],[1.46,1.17],[1.02,.94]];
+    const [pitch,rate]=variations[Math.floor(Math.random()*variations.length)];
+    if(speak('糯糯',{pitch,rate}))return;
+    audioContext??=new AudioContext();audioContext.resume().catch(()=>{});
+    [523,659,784].forEach((frequency,index)=>{
+      const oscillator=audioContext.createOscillator(),gain=audioContext.createGain(),time=audioContext.currentTime+index*.13;
+      oscillator.frequency.value=frequency;oscillator.type='sine';gain.gain.setValueAtTime(0,time);
+      gain.gain.linearRampToValueAtTime(state.settings.volume/100*.12,time+.015);gain.gain.exponentialRampToValueAtTime(.001,time+.18);
+      oscillator.connect(gain);gain.connect(audioContext.destination);oscillator.start(time);oscillator.stop(time+.2);tones.push(oscillator);
+      oscillator.onended=()=>{oscillator.disconnect();gain.disconnect();};
+    });return;
+  }
+  if(cue==='angry'){
+    // The angry line uses the local Windows Chinese voice, so it actually
+    // says the meme-like phrase rather than merely changing a music pitch.
+    if(speak('菲吧揪比！',{pitch:.82,rate:.88,voiceShift:false}))return;
+  }
   audio=new Audio('../assets/audio/phoebe_chubby_0.mp3');
   audio.volume=state.settings.volume/100;
+  // Keep the licensed source untouched, but give the built-in "啾比" cue a
+  // smaller, more playful character. Chromium honours preservesPitch=false.
+  audio.preservesPitch=false;
+  audio.webkitPreservesPitch=false;
+  audio.playbackRate=cue==='reminder'?1.22:cue==='preview'?1.16:1.04;
   audio.play().catch(e=>{console.warn('音频播放失败', e.message);});
 }
 function format(s){return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;}
@@ -30,25 +84,30 @@ function render(next) {
   const before=state;
   state=next;
   const {timer:t,settings:s}=state;
-  if((before?.timer.reminding&&!t.reminding)||!s.soundEnabled)stopAudio();
+  if((before?.timer.reminding&&!t.reminding)||!s.soundEnabled||before?.settings.character!==s.character||before?.voices?.revision!==state.voices?.revision)stopAudio();
   if(audio)audio.volume=s.volume/100;
   $('timerBadge').textContent=t.reminding?'点我确认':`${t.running?(t.phase==='study'?'专注 ':'休息 '):'待开始 '}${format(t.remaining)}`;
   $('bubble').classList.toggle('hidden',!t.reminding);
-  $('bubbleTitle').textContent=t.angry?'菲比啾比生气了！':t.phase==='study'?'该休息啦':'回来学习啦';
+  const name=s.character==='nuonuo'?'弗糯糯':'菲比啾比';
+  $('bubbleTitle').textContent=t.angry?`${name}生气了！`:t.phase==='study'?'该休息啦':'回来学习啦';
   $('bubbleText').textContent=t.angry?'哼！':format(t.reminderElapsed);
-  $('bubbleHint').textContent=t.angry?'已经等你好久了，点我确认～':'点菲比或气泡，开始下一阶段';
-  const portrait=`../assets/images/phoebe_${s.outfit}.png`;
-  if(image.getAttribute('src')!==portrait){maskReady=false;image.src=portrait;}
+  $('bubbleHint').textContent=t.angry?'已经等你好久了，点我确认～':'点桌宠或气泡，开始下一阶段';
+  if(!t.reminding&&Date.now()<speechUntil){
+    $('bubble').classList.remove('hidden');$('bubbleTitle').textContent=`${name}的悄悄话`;
+    $('bubbleText').textContent='♡';$('bubbleHint').textContent=speech;
+  }
+  image.alt=`${name}桌宠`;
   paintMotion();
 }
 setInterval(paintMotion,120);
 setInterval(()=>{
   if(state?.settings.idleMotion&&!state.timer.reminding&&!dragging){
-    const pool=state.timer.phase==='rest'?['sleep','sway']:['sway','happy','hop'];
+    if(Date.now()<motionUntil)return;
+    const pool=state.timer.phase==='rest'?['sleep','sway','blink']:['sway','happy','hop','blink','wave','kick',...(state.settings.character==='nuonuo'?['turn']:[])];
     pose(pool[Math.floor(Math.random()*pool.length)],2800);
   }
 },7500);
-function interact(){if(state?.timer.reminding){window.workFeiBi.petClick();return;}pose('happy',1200);sound();}
+function interact(){if(state?.timer.reminding){window.workFeiBi.petClick();return;}window.workFeiBi.timerAction('interact:pat');}
 
 stage.addEventListener('pointerdown',e=>{
   if(e.button!==0)return;
@@ -92,7 +151,8 @@ $('timerBadge').onclick=()=>state?.timer.reminding?window.workFeiBi.petClick():w
 $('settingsButton').onclick=()=>window.workFeiBi.openSettings();
 window.workFeiBi.onState(render);
 window.workFeiBi.onPetEvent(e=>{
-  if(['reminder','angry','preview'].includes(e)){pose(e==='angry'?'angry':'hop',2000);sound();}
+  if(e?.type==='interaction'){speech=e.text.replaceAll('啾比',state?.settings.character==='nuonuo'?'糯糯':'啾比');speechUntil=Date.now()+4000;pose(e.motion,2200);if(state)render(state);return;}
+  if(['reminder','angry','preview'].includes(e)){pose(e==='angry'?'angry':'hop',2000);sound(e);}
   if(e==='acknowledged'){stopAudio();pose('happy',1600);}
 });
 window.workFeiBi.getState().then(render);

@@ -7,5 +7,10 @@ const runtime=path.join(root,'node_modules/electron/dist');
 if(!fs.existsSync(path.join(runtime,'electron.exe')))throw new Error('请先安装 Electron 运行文件');
 fs.cpSync(runtime,dest,{recursive:true});fs.renameSync(path.join(dest,'electron.exe'),path.join(dest,'workFeiBi.exe'));
 const app=path.join(dest,'resources/app');fs.mkdirSync(app,{recursive:true});
-for(const name of ['src','assets','package.json','README.md','ASSET-LICENSE.txt','ASSET-SOURCES.md','QA.md'])fs.cpSync(path.join(root,name),path.join(app,name),{recursive:true,filter:p=>!p.endsWith('spritesheet.webp')&&(!p.endsWith('.mp3')||p.endsWith('phoebe_chubby_0.mp3'))});
+for(const name of ['src','docs','package.json','README.md','ASSET-LICENSE.txt','ASSET-SOURCES.md','QA.md'])fs.cpSync(path.join(root,name),path.join(app,name),{recursive:true});
+// Explicit allowlist: drafts, references, downloaded clips and private imports
+// never enter the distributable simply because they exist under assets.
+for(const name of ['images/phoebe_0.png','images/phoebe_1.png','images/phoebe_2.png','images/phoebe_wave.png','images/nuonuo_front.png','images/nuonuo_back.png','images/nuonuo_sleep.png','images/nuonuo_wave.png','audio/phoebe_chubby_0.mp3']){
+  const target=path.join(app,'assets',name);fs.mkdirSync(path.dirname(target),{recursive:true});fs.copyFileSync(path.join(root,'assets',name),target);
+}
 console.log('独立程序目录：'+dest);
