@@ -38,7 +38,7 @@ function showImpact(){
     secure(impactWindow);impactWindow.setAlwaysOnTop(true,'screen-saver');impactWindow.setIgnoreMouseEvents(true,{forward:true});
     impactWindow.on('closed',()=>{impactWindow=null;});impactWindow.loadFile(path.join(__dirname,'impact.html')).then(fire).catch(error=>console.error('敲屏特效加载失败',error.message));
   }else fire();
-  clearTimeout(impactDelay);impactDelay=setTimeout(()=>{if(impactWindow&&!impactWindow.isDestroyed())impactWindow.hide();},1250);
+  clearTimeout(impactDelay);impactDelay=setTimeout(()=>{if(impactWindow&&!impactWindow.isDestroyed())impactWindow.hide();},2600);
 }
 function recordCompletion(){
   if(timer.rounds>recordedRounds){

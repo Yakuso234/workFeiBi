@@ -58,7 +58,7 @@ module.exports=async(pet,getSettings,openSettings,action,state,timer)=>{
  // Each Nuonuo pose must decode at native high resolution and have real alpha.
  await w.webContents.executeJavaScript(`window.workFeiBi.saveSettings({character:'nuonuo',idleMotion:false}).then(s=>render(s,true))`);
  assert.equal(state().settings.character,'nuonuo');
- for(const poseName of ['front','back','sleep']){
+ for(const poseName of ['front','back','drowsy','angry']){
    const asset=await pet.webContents.executeJavaScript(`(async()=>{const img=new Image();img.src='../assets/images/nuonuo_${poseName}.png';await img.decode();const c=document.createElement('canvas');c.width=c.height=1;const ctx=c.getContext('2d');ctx.drawImage(img,0,0);return {width:img.naturalWidth,alpha:ctx.getImageData(0,0,1,1).data[3]};})()`);
    assert.ok(asset.width>=1024);assert.equal(asset.alpha,0);
  }
@@ -66,7 +66,7 @@ module.exports=async(pet,getSettings,openSettings,action,state,timer)=>{
  assert.match(await pet.webContents.executeJavaScript('image.src'),/nuonuo_back/);
  await capture(pet,'nuonuo-back.png');
  await pet.webContents.executeJavaScript(`pose('sleep',2000);image.decode()`);
- assert.match(await pet.webContents.executeJavaScript('image.src'),/nuonuo_sleep/);
+ assert.match(await pet.webContents.executeJavaScript('image.src'),/nuonuo_drowsy/);
  await pet.webContents.executeJavaScript(`pose('',0);image.decode()`);
  await capture(pet,'nuonuo.png');
  const beforeInteractions=state().companion.count;action('interact:feed');

@@ -1,7 +1,7 @@
 const $ = id => document.getElementById(id);
 const root = $('petRoot'), stage = $('petStage'), image = $('petImage');
 let state, audio, dragging = false, dragged = false, start, clickTimer;
-let motion = '', motionUntil = 0, lastHit = true, maskReady = false;
+let motion = '', motionUntil = 0, lastHit = true, maskReady = false, idleLoop;
 let speech='', speechUntil=0;
 let audioContext,tones=[];
 let soundRequest=0;
@@ -20,9 +20,9 @@ function paintMotion() {
   const classes=`pet-stage ${active}`;
   if(stage.className!==classes)stage.className=classes;
   $('emotion').textContent=t.angry?'💢':active==='sleep'?'z Z':active==='happy'?'♡':'';
-  const poseName=active==='sleep'?'sleep':active==='turn'?'back':'front';
+  const poseName=active==='sleep'?'sleep':active==='turn'?'back':active==='angry'?'angry':'front';
   const limbPose=['wave','kick','stretch','blink'].includes(active);
-  const portrait=s.character==='nuonuo'?`../assets/images/nuonuo_${limbPose?'wave':poseName}.png`:limbPose?'../assets/images/phoebe_wave.png':`../assets/images/phoebe_${s.outfit}.png`;
+  const portrait=s.character==='nuonuo'?`../assets/images/nuonuo_${active==='sleep'?'drowsy':limbPose?'wave':poseName}.png`:active==='sleep'?'../assets/images/phoebe_sleep.png':active==='angry'?'../assets/images/phoebe_angry.png':limbPose?'../assets/images/phoebe_wave.png':`../assets/images/phoebe_${s.outfit}.png`;
   if(image.getAttribute('src')!==portrait){maskReady=false;image.src=portrait;}
 }
 function stopAudio(){soundRequest++;if(audio){audio.pause();audio.currentTime=0;}if('speechSynthesis' in window)speechSynthesis.cancel();for(const tone of tones)try{tone.stop();}catch{}tones=[];}
@@ -76,7 +76,7 @@ async function sound(cue='preview') {
   // smaller, more playful character. Chromium honours preservesPitch=false.
   audio.preservesPitch=false;
   audio.webkitPreservesPitch=false;
-  audio.playbackRate=cue==='reminder'?1.22:cue==='preview'?1.16:1.04;
+  audio.playbackRate=cue==='reminder'?1.30:cue==='preview'?1.25:1.08;
   audio.play().catch(e=>{console.warn('音频播放失败', e.message);});
 }
 function format(s){return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;}
@@ -100,13 +100,16 @@ function render(next) {
   paintMotion();
 }
 setInterval(paintMotion,120);
-setInterval(()=>{
-  if(state?.settings.idleMotion&&!state.timer.reminding&&!dragging){
-    if(Date.now()<motionUntil)return;
-    const pool=state.timer.phase==='rest'?['sleep','sway','blink']:['sway','happy','hop','blink','wave','kick',...(state.settings.character==='nuonuo'?['turn']:[])];
-    pose(pool[Math.floor(Math.random()*pool.length)],2800);
-  }
-},7500);
+function scheduleIdle(){
+  clearTimeout(idleLoop);
+  idleLoop=setTimeout(()=>{
+    if(state?.settings.idleMotion&&!state.timer.reminding&&!dragging&&Date.now()>=motionUntil){
+      const pool=state.timer.phase==='rest'?['sleep','sway','blink','look']:['sway','happy','hop','blink','wave','kick','stretch','look',...(state.settings.character==='nuonuo'?['turn']:[])];
+      pose(pool[Math.floor(Math.random()*pool.length)],2600);
+    }
+    scheduleIdle();
+  },3000+Math.floor(Math.random()*4000));
+}
 function interact(){if(state?.timer.reminding){window.workFeiBi.petClick();return;}window.workFeiBi.timerAction('interact:pat');}
 
 stage.addEventListener('pointerdown',e=>{
@@ -155,4 +158,4 @@ window.workFeiBi.onPetEvent(e=>{
   if(['reminder','angry','preview'].includes(e)){pose(e==='angry'?'angry':'hop',2000);sound(e);}
   if(e==='acknowledged'){stopAudio();pose('happy',1600);}
 });
-window.workFeiBi.getState().then(render);
+window.workFeiBi.getState().then(next=>{render(next);scheduleIdle();});
