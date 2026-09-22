@@ -17,7 +17,7 @@ function render(state, fillForm = false) {
   preview.alt=settings.character==='nuonuo'?'弗糯糯参考重绘试用版':'菲比啾比';
   document.getElementById('characterNote').textContent=settings.character==='nuonuo'?`弗糯糯 ONLINE · 参考 Akaoni 重绘，非原始动画素材 · ${state.voices?.nuonuo?'自定义语音':'暂用合成提示音'}`:'菲比啾比 ONLINE · 保留原图眼型';
   document.getElementById('importVoice').textContent=`导入${settings.character==='nuonuo'?'弗糯糯':'菲比'}音效`;
-  document.getElementById('turnButton').hidden=settings.character!=='nuonuo';
+  document.getElementById('turnButton').hidden=false;
   if(preview.getAttribute('src')!==portrait)preview.src=portrait;
   document.getElementById('phase').textContent = timer.reminding ? '等待确认' : (timer.phase === 'study' ? '学习阶段' : '休息阶段');
   document.getElementById('time').textContent = formatTime(timer.remaining);

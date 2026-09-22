@@ -22,7 +22,7 @@ function paintMotion() {
   $('emotion').textContent=t.angry?'💢':active==='sleep'?'z Z':active==='happy'?'♡':'';
   const poseName=active==='sleep'?'sleep':active==='turn'?'back':active==='angry'?'angry':'front';
   const limbPose=['wave','kick','stretch','blink'].includes(active);
-  const portrait=s.character==='nuonuo'?`../assets/images/nuonuo_${active==='sleep'?'drowsy':limbPose?'wave':poseName}.png`:active==='sleep'?'../assets/images/phoebe_sleep.png':active==='angry'?'../assets/images/phoebe_angry.png':limbPose?'../assets/images/phoebe_wave.png':`../assets/images/phoebe_${s.outfit}.png`;
+  const portrait=s.character==='nuonuo'?`../assets/images/nuonuo_${active==='sleep'?'drowsy':limbPose?'wave':poseName}.png`:active==='sleep'?'../assets/images/phoebe_sleep.png':active==='angry'?'../assets/images/phoebe_angry.png':active==='turn'?'../assets/images/phoebe_back.png':limbPose?'../assets/images/phoebe_wave.png':`../assets/images/phoebe_${s.outfit}.png`;
   if(image.getAttribute('src')!==portrait){maskReady=false;image.src=portrait;}
 }
 function stopAudio(){soundRequest++;if(audio){audio.pause();audio.currentTime=0;}if('speechSynthesis' in window)speechSynthesis.cancel();for(const tone of tones)try{tone.stop();}catch{}tones=[];}
@@ -104,7 +104,7 @@ function scheduleIdle(){
   clearTimeout(idleLoop);
   idleLoop=setTimeout(()=>{
     if(state?.settings.idleMotion&&!state.timer.reminding&&!dragging&&Date.now()>=motionUntil){
-      const pool=state.timer.phase==='rest'?['sleep','sway','blink','look']:['sway','happy','hop','blink','wave','kick','stretch','look',...(state.settings.character==='nuonuo'?['turn']:[])];
+      const pool=state.timer.phase==='rest'?['sleep','sway','blink','look','turn']:['sway','happy','hop','blink','wave','kick','stretch','look','turn'];
       pose(pool[Math.floor(Math.random()*pool.length)],2600);
     }
     scheduleIdle();

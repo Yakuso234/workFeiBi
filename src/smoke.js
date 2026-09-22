@@ -43,6 +43,8 @@ module.exports=async(pet,getSettings,openSettings,action,state,timer)=>{
  }
  await pet.webContents.executeJavaScript(`pose('wave',2000);image.decode()`);
  assert.match(await pet.webContents.executeJavaScript('image.src'),/phoebe_wave/);
+ await pet.webContents.executeJavaScript(`pose('turn',2000);image.decode()`);
+ assert.match(await pet.webContents.executeJavaScript('image.src'),/phoebe_back/);
  await capture(pet,'pet.png');
  await capture(w,'settings.png');
  // Tasks go through the same IPC and storage path used by the UI.
