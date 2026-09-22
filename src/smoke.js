@@ -93,5 +93,10 @@ module.exports=async(pet,getSettings,openSettings,action,state,timer)=>{
  await w.webContents.executeJavaScript(`window.workFeiBi.saveSettings({character:'phoebe',idleMotion:true})`);
  const media=await pet.webContents.executeJavaScript(`Promise.all(['phoebe_chubby_0.mp3'].map(name=>new Promise((resolve,reject)=>{const a=new Audio('../assets/audio/'+name);a.onloadedmetadata=()=>resolve(a.duration);a.onerror=()=>reject(new Error(name));})))`);
  assert.ok(media.every(n=>n>0));assert.equal(errors.length,0,errors.join('\n'));
+ const approvedLocal=path.join(__dirname,'../local-media/nuonuo/nuonuo-1.wav');
+ if(fs.existsSync(approvedLocal)){
+   const durations=await pet.webContents.executeJavaScript(`Promise.all([1,2,3].map(n=>new Promise((resolve,reject)=>{const a=new Audio('../local-media/nuonuo/nuonuo-'+n+'.wav');a.onloadedmetadata=()=>resolve(a.duration);a.onerror=()=>reject(new Error('nuonuo-'+n));})))`);
+   assert.ok(durations.every(seconds=>seconds>.5&&seconds<2));
+ }
  console.log('SMOKE PASS: windows, hit-test, both characters, high-resolution limb poses, Nuonuo alpha sprites, settings, reminder/ack, journal totals, tasks, interaction cooldown, local voice import/decoding, responsive layout and screenshots');
 };

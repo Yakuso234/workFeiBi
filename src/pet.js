@@ -37,6 +37,19 @@ function speak(text,{pitch=1,rate=1,voiceShift=true}={}){
   utterance.lang='zh-CN';utterance.volume=state.settings.volume/100;utterance.pitch=pitch;utterance.rate=rate;
   try{speechSynthesis.speak(utterance);return true;}catch{return false;}
 }
+function fallbackNuonuo(cue){
+  const variations=cue==='angry'?[[.82,.86],[1.08,.98],[1.36,1.12]]:[[1.22,1.05],[1.46,1.17],[1.02,.94]];
+  const [pitch,rate]=variations[Math.floor(Math.random()*variations.length)];
+  if(speak('糯糯',{pitch,rate}))return;
+  audioContext??=new AudioContext();audioContext.resume().catch(()=>{});
+  [523,659,784].forEach((frequency,index)=>{
+    const oscillator=audioContext.createOscillator(),gain=audioContext.createGain(),time=audioContext.currentTime+index*.13;
+    oscillator.frequency.value=frequency;oscillator.type='sine';gain.gain.setValueAtTime(0,time);
+    gain.gain.linearRampToValueAtTime(state.settings.volume/100*.12,time+.015);gain.gain.exponentialRampToValueAtTime(.001,time+.18);
+    oscillator.connect(gain);gain.connect(audioContext.destination);oscillator.start(time);oscillator.stop(time+.2);tones.push(oscillator);
+    oscillator.onended=()=>{oscillator.disconnect();gain.disconnect();};
+  });
+}
 async function sound(cue='preview') {
   if(!state?.settings.soundEnabled||state.settings.volume<=0)return;
   stopAudio();
@@ -50,20 +63,17 @@ async function sound(cue='preview') {
   }
   if(request!==soundRequest||!state.settings.soundEnabled)return;
   if(state.settings.character==='nuonuo'){
-    // "糯糯" is deliberately re-spoken for each cue.  Installed Chinese
-    // voices are rotated when available; pitch and pace make reminders feel
-    // different without bundling an unlicensed fan recording.
-    const variations=cue==='angry'?[[.82,.86],[1.08,.98],[1.36,1.12]]:[[1.22,1.05],[1.46,1.17],[1.02,.94]];
-    const [pitch,rate]=variations[Math.floor(Math.random()*variations.length)];
-    if(speak('糯糯',{pitch,rate}))return;
-    audioContext??=new AudioContext();audioContext.resume().catch(()=>{});
-    [523,659,784].forEach((frequency,index)=>{
-      const oscillator=audioContext.createOscillator(),gain=audioContext.createGain(),time=audioContext.currentTime+index*.13;
-      oscillator.frequency.value=frequency;oscillator.type='sine';gain.gain.setValueAtTime(0,time);
-      gain.gain.linearRampToValueAtTime(state.settings.volume/100*.12,time+.015);gain.gain.exponentialRampToValueAtTime(.001,time+.18);
-      oscillator.connect(gain);gain.connect(audioContext.destination);oscillator.start(time);oscillator.stop(time+.2);tones.push(oscillator);
-      oscillator.onended=()=>{oscillator.disconnect();gain.disconnect();};
-    });return;
+    // Author-approved local clips stay outside Git.  The packaged local copy
+    // randomly picks a short vocal cue; repositories without it fall back.
+    const clip=1+Math.floor(Math.random()*3);
+    audio=new Audio(`../local-media/nuonuo/nuonuo-${clip}.wav`);
+    audio.volume=state.settings.volume/100;
+    audio.playbackRate=cue==='angry'?.92:cue==='preview'?1.04:1;
+    let fellBack=false;
+    const fallback=()=>{if(!fellBack&&request===soundRequest){fellBack=true;fallbackNuonuo(cue);}};
+    audio.onerror=fallback;
+    audio.play().catch(fallback);
+    return;
   }
   if(cue==='angry'){
     // The angry line uses the local Windows Chinese voice, so it actually
