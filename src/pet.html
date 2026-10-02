@@ -18,10 +18,13 @@
     <button id="settingsButton" aria-label="打开设置">⚙</button>
     <div id="petStage" class="pet-stage idle">
       <img id="petImage" src="../assets/images/phoebe_1.png" draggable="false" alt="菲比啾比桌宠" />
+      <canvas id="faceOverlay" width="500" height="500" aria-hidden="true"></canvas>
+      <span id="interactionEffect" class="interaction-effect" aria-hidden="true"></span>
       <span id="emotion" class="emotion" aria-hidden="true"></span>
       <span class="shadow"></span>
     </div>
   </main>
+  <script src="behavior.js"></script>
   <script src="pet.js"></script>
 </body>
 </html>

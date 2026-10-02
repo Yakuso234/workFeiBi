@@ -12,6 +12,7 @@ contextBridge.exposeInMainWorld('workFeiBi', {
   dragEnd: () => ipcRenderer.send('drag-end'),
   hitTest: (interactive) => ipcRenderer.send('hit-test', interactive),
   timerAction: (action) => ipcRenderer.send('timer-action', action),
+  previewAction: (motion) => ipcRenderer.invoke('preview-action', motion),
   saveSettings: (settings) => ipcRenderer.invoke('save-settings', settings),
   taskAction: (action, input) => ipcRenderer.invoke('task-action', action, input),
   getVoice: character => ipcRenderer.invoke('get-voice', character),

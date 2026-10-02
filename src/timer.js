@@ -1,4 +1,4 @@
-const defaults = { studyMinutes:25, restMinutes:5, angryAfterSeconds:60, petScale:100, soundEnabled:true, idleMotion:true, outfit:1, volume:60, dailyGoal:4, character:'phoebe' };
+const defaults = { studyMinutes:25, restMinutes:5, angryAfterSeconds:60, petScale:100, soundEnabled:true, idleMotion:true, outfit:1, volume:60, dailyGoal:4, character:'phoebe', idleFrequency:'normal', focusQuiet:true, reducedMotion:false, impactEnabled:true, interactionSounds:false };
 function sanitize(input = {}) {
   if(!input || typeof input!=='object') input={};
   const s = { ...defaults };
@@ -6,7 +6,8 @@ function sanitize(input = {}) {
     const n = Number(input[key]);
     if (Number.isFinite(n)) s[key] = Math.min(max,Math.max(min,Math.round(n)));
   }
-  for (const key of ['soundEnabled','idleMotion']) if(typeof input[key]==='boolean') s[key]=input[key];
+  for (const key of ['soundEnabled','idleMotion','focusQuiet','reducedMotion','impactEnabled','interactionSounds']) if(typeof input[key]==='boolean') s[key]=input[key];
+  if(['calm','normal','lively'].includes(input.idleFrequency))s.idleFrequency=input.idleFrequency;
   if(['phoebe','nuonuo'].includes(input.character))s.character=input.character;
   return s;
 }

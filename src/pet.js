@@ -6,41 +6,83 @@ let speech='', speechUntil=0;
 let audioContext,tones=[];
 let soundRequest=0;
 let selectedVoice=0;
+let speechCancel, motionStarted=0, interactionKind='',motionAutomatic=false;
+const behavior=window.PetBehavior,idleBag=new behavior.IdleBag();
+const faceCanvas=$('faceOverlay'),faceCtx=faceCanvas.getContext('2d');
 const mask = document.createElement('canvas');
 mask.width = 500; mask.height = 500;
 const maskCtx = mask.getContext('2d', {willReadFrequently:true});
 
-function pose(name, duration=1800) {
-  motion=name; motionUntil=Date.now()+duration; paintMotion();
+function pose(name, duration=1800, automatic=false) {
+  motion=name;motionAutomatic=automatic;motionStarted=Date.now();motionUntil=motionStarted+duration;paintMotion();
 }
 function paintMotion() {
   if(!state)return;
   const t=state.timer, s=state.settings;
-  const active=t.angry?'angry':dragging?'lifted':Date.now()<motionUntil?motion:s.idleMotion?'idle':'';
+  const active=t.angry?'angry':dragging?'lifted':Date.now()<motionUntil?motion:s.idleMotion&&!s.reducedMotion&&!behavior.quiet(s,t)?'idle':'';
   const classes=`pet-stage ${active}`;
   if(stage.className!==classes)stage.className=classes;
+  root.classList.toggle('reduced-motion',Boolean(s.reducedMotion));
   $('emotion').textContent=t.angry?'💢':active==='sleep'?'z Z':active==='happy'?'♡':'';
   const poseName=active==='sleep'?'sleep':active==='turn'?'back':active==='angry'?'angry':'front';
-  const limbPose=['wave','kick','stretch','blink'].includes(active);
-  const portrait=s.character==='nuonuo'?`../assets/images/nuonuo_${active==='sleep'?'drowsy':limbPose?'wave':poseName}.png`:active==='sleep'?'../assets/images/phoebe_sleep.png':active==='angry'?'../assets/images/phoebe_angry.png':active==='turn'?'../assets/images/phoebe_back.png':limbPose?'../assets/images/phoebe_wave.png':`../assets/images/phoebe_${s.outfit}.png`;
+  const limbPose=['wave','kick','stretch'].includes(active);
+  const portrait=s.character==='nuonuo'?`../assets/images/nuonuo_${active==='sleep'?'drowsy':limbPose?'wave':poseName}.png`:s.outfit!==1?`../assets/images/phoebe_${s.outfit}.png`:active==='sleep'?'../assets/images/phoebe_sleep.png':active==='angry'?'../assets/images/phoebe_angry.png':active==='turn'?'../assets/images/phoebe_back.png':limbPose?'../assets/images/phoebe_wave.png':`../assets/images/phoebe_${s.outfit}.png`;
   if(image.getAttribute('src')!==portrait){maskReady=false;image.src=portrait;}
+  const effect=Date.now()<motionUntil&&!t.angry?interactionKind:'';
+  $('interactionEffect').className=`interaction-effect ${effect}`;
+  $('interactionEffect').textContent=effect==='pat'?'♡':'';
+  paintFace(active);
 }
-function stopAudio(){soundRequest++;if(audio){audio.pause();audio.currentTime=0;}if('speechSynthesis' in window)speechSynthesis.cancel();for(const tone of tones)try{tone.stop();}catch{}tones=[];}
-function speak(text,{pitch=1,rate=1,voiceShift=true}={}){
-  if(!('speechSynthesis' in window))return false;
-  const utterance=new SpeechSynthesisUtterance(text);
-  const chinese=speechSynthesis.getVoices().filter(voice=>/^zh(?:-|_)/i.test(voice.lang));
-  if(chinese.length){
-    if(voiceShift)selectedVoice=(selectedVoice+1)%chinese.length;
-    utterance.voice=chinese[selectedVoice];
+function paintFace(active){
+  faceCtx.clearRect(0,0,500,500);
+  // These masks are fitted to the normal front portraits only. Never paint
+  // artificial eyes on the alternate sleep/back/raised-arm illustrations.
+  if(active!=='blink'||state.settings.reducedMotion)return;
+  const elapsed=Date.now()-motionStarted;
+  if(!((elapsed>=100&&elapsed<280)||(elapsed>=440&&elapsed<600)))return;
+  const nuonuo=state.settings.character==='nuonuo';
+  if(nuonuo){
+    // Follow the exposed eyes below the fringe instead of covering hair with
+    // circular skin patches. Coordinates use the portrait's 500px design space.
+    faceCtx.fillStyle='#fff0eb';faceCtx.strokeStyle='#392b2c';faceCtx.lineWidth=2.6;faceCtx.lineCap='round';
+    faceCtx.beginPath();faceCtx.moveTo(128,211);faceCtx.lineTo(173,205);faceCtx.lineTo(174,226);faceCtx.quadraticCurveTo(174,253,150,253);faceCtx.quadraticCurveTo(124,253,127,229);faceCtx.closePath();faceCtx.fill();
+    faceCtx.beginPath();faceCtx.moveTo(258,200);faceCtx.lineTo(312,201);faceCtx.lineTo(312,225);faceCtx.quadraticCurveTo(312,249,285,249);faceCtx.quadraticCurveTo(258,249,258,227);faceCtx.closePath();faceCtx.fill();
+    for(const [x,y,rx] of [[150,222,20],[285,221,24]]){faceCtx.beginPath();faceCtx.moveTo(x-rx,y);faceCtx.quadraticCurveTo(x,y+12,x+rx,y);faceCtx.stroke();}
+    return;
   }
-  utterance.lang='zh-CN';utterance.volume=state.settings.volume/100;utterance.pitch=pitch;utterance.rate=rate;
-  try{speechSynthesis.speak(utterance);return true;}catch{return false;}
+  const eyes=state.settings.outfit===2?[[192,329,29,26],[288,329,30,26]]:state.settings.outfit===0?[[200,335,29,26],[291,335,29,26]]:[[195,337,29,26],[288,337,31,27]];
+  faceCtx.fillStyle='#ffe6d4';faceCtx.strokeStyle='#392b2c';faceCtx.lineWidth=4;faceCtx.lineCap='round';
+  for(const [x,y,rx,ry] of eyes){
+    faceCtx.beginPath();faceCtx.ellipse(x,y,rx,ry,0,0,Math.PI*2);faceCtx.fill();
+    faceCtx.beginPath();faceCtx.moveTo(x-rx+4,y-3);faceCtx.quadraticCurveTo(x,y+10,x+rx-4,y-3);faceCtx.stroke();
+  }
 }
-function fallbackNuonuo(cue){
-  const variations=cue==='angry'?[[.82,.86],[1.08,.98],[1.36,1.12]]:[[1.22,1.05],[1.46,1.17],[1.02,.94]];
-  const [pitch,rate]=variations[Math.floor(Math.random()*variations.length)];
-  if(speak('糯糯',{pitch,rate}))return;
+function stopAudio(){soundRequest++;if(audio){audio.onerror=null;audio.pause();audio.currentTime=0;}speechCancel?.();if('speechSynthesis' in window)speechSynthesis.cancel();for(const tone of tones)try{tone.stop();}catch{}tones=[];}
+async function speak(text,{pitch=1,rate=1,voiceShift=true}={},request=soundRequest){
+  if(!('speechSynthesis' in window))return false;
+  const chinese=()=>speechSynthesis.getVoices().filter(voice=>/^zh(?:-|_)/i.test(voice.lang));
+  if(!chinese().length)await new Promise(resolve=>{
+    let timer;
+    const done=()=>{clearTimeout(timer);speechSynthesis.removeEventListener('voiceschanged',done);resolve();};
+    speechSynthesis.addEventListener('voiceschanged',done);timer=setTimeout(done,500);
+  });
+  const voices=chinese();
+  if(!voices.length||request!==soundRequest||!behavior.canSound(state.settings,state.timer))return false;
+  const utterance=new SpeechSynthesisUtterance(text);
+  if(voiceShift)selectedVoice=(selectedVoice+1)%voices.length;
+  utterance.voice=voices[selectedVoice%voices.length];
+  utterance.lang='zh-CN';utterance.volume=state.settings.volume/100;utterance.pitch=pitch;utterance.rate=rate;
+  return new Promise(resolve=>{
+    let finished=false,timer;
+    const finish=ok=>{if(finished)return;finished=true;clearTimeout(timer);if(speechCancel===cancel)speechCancel=null;resolve(ok);};
+    const cancel=()=>finish(false);speechCancel=cancel;
+    utterance.onend=()=>finish(true);utterance.onerror=()=>finish(false);
+    timer=setTimeout(()=>{finish(false);speechSynthesis.cancel();},8000);
+    try{speechSynthesis.speak(utterance);}catch{finish(false);}
+  });
+}
+function chime(request){
+  if(request!==soundRequest||!behavior.canSound(state.settings,state.timer))return;
   audioContext??=new AudioContext();audioContext.resume().catch(()=>{});
   [523,659,784].forEach((frequency,index)=>{
     const oscillator=audioContext.createOscillator(),gain=audioContext.createGain(),time=audioContext.currentTime+index*.13;
@@ -50,51 +92,54 @@ function fallbackNuonuo(cue){
     oscillator.onended=()=>{oscillator.disconnect();gain.disconnect();};
   });
 }
+async function fallbackNuonuo(cue,request){
+  const variations=cue==='angry'?[[1.3,.98],[1.55,1.12],[1.8,1.2]]:[[1.4,1.05],[1.7,1.17],[1.55,.98]];
+  const [pitch,rate]=variations[Math.floor(Math.random()*variations.length)];
+  if(!await speak('糯糯',{pitch,rate},request))chime(request);
+}
+function playAudio(src,request,rate,fallback,pitchShift=false){
+  if(request!==soundRequest||!behavior.canSound(state.settings,state.timer))return;
+  const clip=new Audio(src);audio=clip;clip.volume=state.settings.volume/100;clip.playbackRate=rate;
+  if(pitchShift){clip.preservesPitch=false;clip.webkitPreservesPitch=false;}
+  let failed=false;
+  const fail=()=>{if(failed||request!==soundRequest)return;failed=true;clip.onerror=null;clip.pause();fallback();};
+  clip.onerror=fail;clip.play().catch(fail);
+}
 async function sound(cue='preview') {
-  if(!state?.settings.soundEnabled||state.settings.volume<=0)return;
+  if(!state||!behavior.canSound(state.settings,state.timer))return;
   stopAudio();
   const request=soundRequest,character=state.settings.character;
+  const builtin=async()=>{
+    if(request!==soundRequest||!behavior.canSound(state.settings,state.timer))return;
+    if(character==='nuonuo'){
+      if(state.voices?.localNuonuo){
+        const clip=1+Math.floor(Math.random()*3),rate=cue==='angry'?1.08:cue==='feed'?1.16:cue==='pat'?1.1:1.04;
+        playAudio(`../local-media/nuonuo/nuonuo-${clip}.wav`,request,rate,()=>fallbackNuonuo(cue,request),true);
+      }else await fallbackNuonuo(cue,request);
+      return;
+    }
+    if(cue==='angry'&&await speak('菲吧揪比！',{pitch:1.75,rate:1.1,voiceShift:false},request))return;
+    playAudio('../assets/audio/phoebe_chubby_0.mp3',request,cue==='feed'?1.42:cue==='pat'?1.36:cue==='reminder'?1.35:1.3,()=>chime(request),true);
+  };
   if(state.voices?.[character]){
     try{
       const src=await window.workFeiBi.getVoice(character);
-      if(request!==soundRequest||!state.settings.soundEnabled)return;
-      if(src){audio=new Audio(src);audio.volume=state.settings.volume/100;audio.play().catch(()=>{speech='音频无法播放，请换一个有效音频文件。';speechUntil=Date.now()+5000;});return;}
+      if(request!==soundRequest||!behavior.canSound(state.settings,state.timer))return;
+      if(src){playAudio(src,request,1,builtin);return;}
     }catch(error){console.warn('读取自定义音效失败',error.message);}
   }
-  if(request!==soundRequest||!state.settings.soundEnabled)return;
-  if(state.settings.character==='nuonuo'){
-    // Author-approved local clips stay outside Git.  The packaged local copy
-    // randomly picks a short vocal cue; repositories without it fall back.
-    const clip=1+Math.floor(Math.random()*3);
-    audio=new Audio(`../local-media/nuonuo/nuonuo-${clip}.wav`);
-    audio.volume=state.settings.volume/100;
-    audio.playbackRate=cue==='angry'?.92:cue==='preview'?1.04:1;
-    let fellBack=false;
-    const fallback=()=>{if(!fellBack&&request===soundRequest){fellBack=true;fallbackNuonuo(cue);}};
-    audio.onerror=fallback;
-    audio.play().catch(fallback);
-    return;
-  }
-  if(cue==='angry'){
-    // The angry line uses the local Windows Chinese voice, so it actually
-    // says the meme-like phrase rather than merely changing a music pitch.
-    if(speak('菲吧揪比！',{pitch:.82,rate:.88,voiceShift:false}))return;
-  }
-  audio=new Audio('../assets/audio/phoebe_chubby_0.mp3');
-  audio.volume=state.settings.volume/100;
-  // Keep the licensed source untouched, but give the built-in "啾比" cue a
-  // smaller, more playful character. Chromium honours preservesPitch=false.
-  audio.preservesPitch=false;
-  audio.webkitPreservesPitch=false;
-  audio.playbackRate=cue==='reminder'?1.30:cue==='preview'?1.25:1.08;
-  audio.play().catch(e=>{console.warn('音频播放失败', e.message);});
+  await builtin();
 }
 function format(s){return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;}
 function render(next) {
   const before=state;
   state=next;
   const {timer:t,settings:s}=state;
-  if((before?.timer.reminding&&!t.reminding)||!s.soundEnabled||before?.settings.character!==s.character||before?.voices?.revision!==state.voices?.revision)stopAudio();
+  const characterChanged=before&&before.settings.character!==s.character;
+  if(characterChanged){motion='';motionUntil=0;speech='';speechUntil=0;interactionKind='';}
+  if(motionAutomatic&&(!s.idleMotion||s.reducedMotion||t.reminding||behavior.quiet(s,t)&&motion!=='blink')){motion='';motionUntil=0;}
+  if((before?.timer.reminding&&!t.reminding)||!behavior.canSound(s,t)||characterChanged||before?.voices?.revision!==state.voices?.revision)stopAudio();
+  if(before&&(before.settings.idleFrequency!==s.idleFrequency||before.settings.idleMotion!==s.idleMotion||before.settings.focusQuiet!==s.focusQuiet||before.settings.reducedMotion!==s.reducedMotion))scheduleIdle();
   if(audio)audio.volume=s.volume/100;
   $('timerBadge').textContent=t.reminding?'点我确认':`${t.running?(t.phase==='study'?'专注 ':'休息 '):'待开始 '}${format(t.remaining)}`;
   $('bubble').classList.toggle('hidden',!t.reminding);
@@ -113,12 +158,12 @@ setInterval(paintMotion,120);
 function scheduleIdle(){
   clearTimeout(idleLoop);
   idleLoop=setTimeout(()=>{
-    if(state?.settings.idleMotion&&!state.timer.reminding&&!dragging&&Date.now()>=motionUntil){
-      const pool=state.timer.phase==='rest'?['sleep','sway','blink','look','turn']:['sway','happy','hop','blink','wave','kick','stretch','look','turn'];
-      pose(pool[Math.floor(Math.random()*pool.length)],2600);
+    if(state&&!dragging&&Date.now()>=motionUntil){
+      const next=idleBag.next(behavior.idlePool(state.settings,state.timer));
+      if(next){interactionKind='';pose(next,behavior.duration(next),true);}
     }
     scheduleIdle();
-  },3000+Math.floor(Math.random()*4000));
+  },behavior.idleDelay(state?.settings.idleFrequency));
 }
 function interact(){if(state?.timer.reminding){window.workFeiBi.petClick();return;}window.workFeiBi.timerAction('interact:pat');}
 
@@ -164,8 +209,20 @@ $('timerBadge').onclick=()=>state?.timer.reminding?window.workFeiBi.petClick():w
 $('settingsButton').onclick=()=>window.workFeiBi.openSettings();
 window.workFeiBi.onState(render);
 window.workFeiBi.onPetEvent(e=>{
-  if(e?.type==='interaction'){speech=e.text.replaceAll('啾比',state?.settings.character==='nuonuo'?'糯糯':'啾比');speechUntil=Date.now()+4000;pose(e.motion,2200);if(state)render(state);return;}
-  if(['reminder','angry','preview'].includes(e)){pose(e==='angry'?'angry':'hop',2000);sound(e);}
-  if(e==='acknowledged'){stopAudio();pose('happy',1600);}
+  if(e?.type==='interaction'){
+    speech=String(e.text||'').replaceAll('啾比',state?.settings.character==='nuonuo'?'糯糯':'啾比');speechUntil=Date.now()+4000;
+    interactionKind=['pat','feed'].includes(e.sound)?e.sound:'';
+    pose(e.motion,behavior.duration(e.motion,e.duration));
+    if(state?.settings.interactionSounds&&e.sound)sound(e.sound);
+    if(state)render(state);return;
+  }
+  if(e?.type==='preview-action'&&behavior.previewActions.includes(e.motion)){
+    interactionKind='';speech='';speechUntil=0;
+    pose(e.motion,behavior.duration(e.motion,e.duration));
+    if(e.motion==='angry')sound('angry');
+    if(state)render(state);return;
+  }
+  if(['reminder','angry','preview'].includes(e)){interactionKind='';pose(e==='angry'?'angry':'hop',2000);sound(e);}
+  if(e==='acknowledged'){stopAudio();interactionKind='';pose('happy',1600);}
 });
 window.workFeiBi.getState().then(next=>{render(next);scheduleIdle();});

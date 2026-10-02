@@ -13,8 +13,15 @@ for(const name of ['src','docs','package.json','README.md','ASSET-LICENSE.txt','
 for(const name of ['images/phoebe_0.png','images/phoebe_1.png','images/phoebe_2.png','images/phoebe_wave.png','images/phoebe_sleep.png','images/phoebe_angry.png','images/phoebe_back.png','images/nuonuo_front.png','images/nuonuo_back.png','images/nuonuo_wave.png','images/nuonuo_drowsy.png','images/nuonuo_angry.png','audio/phoebe_chubby_0.mp3']){
   const target=path.join(app,'assets',name);fs.mkdirSync(path.dirname(target),{recursive:true});fs.copyFileSync(path.join(root,'assets',name),target);
 }
-// Author-approved Nuonuo vocal clips intentionally remain local-media/ and
-// are excluded from Git.  A source-only build safely uses the renderer fallback.
-const localNuonuo=path.join(root,'local-media','nuonuo');
-if(fs.existsSync(localNuonuo))fs.cpSync(localNuonuo,path.join(app,'local-media','nuonuo'),{recursive:true});
+// Local permission is not permission to redistribute: public builds exclude
+// these files by default. Even an explicit local build uses an exact allowlist.
+if(process.argv.includes('--with-local-audio')){
+  for(const n of [1,2,3]){
+    const name=`nuonuo-${n}.wav`,source=path.join(root,'local-media','nuonuo',name);
+    if(!fs.existsSync(source))continue;
+    const target=path.join(app,'local-media','nuonuo',name);
+    fs.mkdirSync(path.dirname(target),{recursive:true});fs.copyFileSync(source,target);
+  }
+  console.log('仅供本机使用：已按白名单复制存在的本地许可音频，请勿公开上传此构建。');
+}
 console.log('独立程序目录：'+dest);

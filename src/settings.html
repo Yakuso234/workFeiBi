@@ -9,10 +9,11 @@
 </head>
 <body>
   <main>
-    <div class="system-bar"><span>NC // PERSONAL LINK</span><span>● LOCAL ONLY</span></div>
+    <div class="system-bar"><span>NC // PERSONAL LINK</span><span>V1.2 · ● LOCAL ONLY</span></div>
     <header><div><small>FOCUS PROTOCOL / 2077</small><h1>workFeiBi<span>_</span></h1><p>夜之城 · 专注陪伴终端</p><b class="tag">EDGERUNNER MODE</b></div><img id="portrait" src="../assets/images/phoebe_1.png" alt="菲比啾比" /></header>
     <p id="storageWarning" class="warning" role="alert" hidden></p>
-    <nav class="tabs" aria-label="终端页面"><button data-tab="dashboard" aria-pressed="true">01 / 专注舱</button><button data-tab="journal" aria-pressed="false">02 / 任务档案</button><button data-tab="config" aria-pressed="false">03 / 参数配置</button></nav>
+    <nav class="tabs" aria-label="终端页面"><button data-tab="dashboard" aria-controls="dashboard" aria-pressed="true">01 / 专注舱</button><button data-tab="journal" aria-controls="journal" aria-pressed="false">02 / 任务档案</button><button data-tab="config" aria-controls="config" aria-pressed="false">03 / 参数配置</button><button data-tab="laboratory" aria-controls="laboratory" aria-pressed="false">04 / 动作实验室</button></nav>
+    <p id="actionStatus" class="note action-status" role="status" aria-live="polite"></p>
     <div id="dashboard" class="tab-panel">
     <section class="timer-card">
       <div class="section-label">01 / NEURAL TIMER <span>连接稳定</span></div>
@@ -28,6 +29,17 @@
       <div class="extra-actions"><button data-interact="sleep">☾ 打个盹</button><button data-interact="turn" id="turnButton" hidden>↻ 转身看看</button></div>
       <p class="pending" id="characterNote">角色信号：菲比啾比 ONLINE</p>
     </section>
+    <section class="companion-growth">
+      <div class="section-label">COMPANION / 一起积累的小日常 <span id="companionLevel">初次见面</span></div>
+      <div class="companion-meters">
+        <label for="bondMeter">默契 <span id="bondValue">0 / 100</span><progress id="bondMeter" max="100" value="0"></progress></label>
+        <label for="moodMeter">心情 <span id="moodValue">0 / 100</span><progress id="moodMeter" max="100" value="0"></progress></label>
+        <label for="energyMeter">精神 <span id="energyValue">0 / 100</span><progress id="energyMeter" max="100" value="0"></progress></label>
+      </div>
+      <p id="companionHistory" class="note">累计互动 0 次 · 一起完成 0 轮专注</p>
+      <ul id="companionBadges" class="badge-list" aria-label="陪伴纪念章"></ul>
+      <p class="note quiet-note">随时回来都欢迎，不用为了数值打卡。慢慢积累属于你们的日常。</p>
+    </section>
     <div class="stat-grid"><section><small>今日完成</small><strong id="todayRounds">0</strong><span>轮专注</span></section><section><small>完整轮次计时</small><strong id="todayMinutes">0</strong><span>分钟</span></section><section><small>每日目标</small><strong id="goalProgress">0 / 4</strong><span id="goalMessage">从一轮开始</span></section></div>
     <p id="rounds">累计完成 0 轮专注</p>
     </div>
@@ -37,6 +49,8 @@
     </div>
     <div id="config" class="tab-panel" hidden>
     <h2 class="section-label">03 / PROTOCOL SETTINGS</h2>
+    <div class="preset-row" aria-label="计时预设"><span>学习 / 休息预设</span><button data-preset="25/5">25 / 5 分钟</button><button data-preset="50/10">50 / 10 分钟</button><button data-preset="90/15">90 / 15 分钟</button></div>
+    <p id="presetStatus" class="note" role="status">选择预设后点击保存；当前轮次继续原来的计时。</p>
     <section class="settings-grid">
       <label>学习时长（分钟）<input id="studyMinutes" type="number" min="1" max="240" /></label>
       <label>休息时长（分钟）<input id="restMinutes" type="number" min="1" max="120" /></label>
@@ -44,20 +58,44 @@
       <label>桌宠大小（%）<input id="petScale" type="range" min="70" max="150" step="5" /><output id="petScaleValue">100%</output></label>
     </section>
     <section class="switches">
-      <label>角色 <select id="character"><option value="phoebe">菲比啾比 · 原素材</option><option value="nuonuo">弗糯糯 · 参考重绘试用版</option></select></label>
-      <label><input id="soundEnabled" type="checkbox" /> 提醒时播放音效（菲比语音 / 弗糯糯提示音）</label>
+      <label class="wide-field">角色 <select id="character"><option value="phoebe">菲比啾比</option><option value="nuonuo">弗糯糯</option></select></label>
+      <label class="wide-field"><input id="soundEnabled" type="checkbox" /> 开启角色声音与提醒音效</label>
       <label><input id="idleMotion" type="checkbox" /> 自动播放待机动作</label>
+      <label>待机频率 <select id="idleFrequency"><option value="calm">安静一点</option><option value="normal">自然陪伴</option><option value="lively">活泼一点</option></select></label>
+      <label><input id="focusQuiet" type="checkbox" /> 学习计时中减少主动打扰</label>
+      <label><input id="interactionSounds" type="checkbox" /> 互动时播放角色声音</label>
+      <label><input id="reducedMotion" type="checkbox" /> 减少大幅动作与闪动</label>
+      <label><input id="impactEnabled" type="checkbox" /> 生气敲屏时显示裂纹特效</label>
       <label>形象 <select id="outfit"><option value="1">戴帽啾比</option><option value="0">摘帽啾比</option><option value="2">节日啾比</option></select></label>
       <label>音量 <input id="volume" type="range" min="0" max="100" /></label>
       <label>每日目标（轮）<input id="dailyGoal" type="number" min="1" max="20" /></label>
     </section>
     <button id="save" class="save">保存设置</button>
-    <button id="preview">试听当前角色音效</button>
-    <button id="importVoice">导入当前角色音效</button>
+    <div class="voice-actions"><button id="preview">试听当前角色音效</button><button id="importVoice">导入当前角色音效</button></div>
+    <p id="voiceSource" class="note"></p>
     <p id="voiceStatus" class="note" role="status">支持 MP3 / WAV / OGG，最大 5 MB，仅保存在本机，不上传。</p>
     <p class="note">时长设置在下一轮生效；要立即应用，请保存后重置。关闭设置窗口后桌宠仍在。Ctrl+Shift+F 可隐藏/显示。</p>
     </div>
-    <footer><b>STAY FOCUSED. STAY HUMAN.</b><br>拖动移动 · 单击互动/确认 · 双击设置 · 右键菜单<br>Ctrl+Shift+F 隐藏/显示 · 关闭终端后桌宠继续陪伴<br>非官方同人终端 · Cyberpunk / Edgerunners 风格致意</footer>
+    <div id="laboratory" class="tab-panel" hidden>
+      <section class="companion-card lab-card">
+        <h2 class="section-label">04 / MOTION LAB <span id="labCharacter">菲比啾比</span></h2>
+        <h2 class="lab-title">看看它的每一种小反应。</h2>
+        <p class="note">点击按钮，让桌面上的当前角色表演。预览不会改变计时、专注统计或陪伴进度。可以先把这个窗口移到旁边，留出桌宠的位置。</p>
+        <div class="motion-grid">
+          <button data-motion="blink"><span class="motion-symbol" aria-hidden="true">◡ ◡</span><strong>眨眨眼</strong><small>轻轻闭眼，再看看你</small></button>
+          <button data-motion="wave"><span class="motion-symbol" aria-hidden="true">♡</span><strong>挥挥手</strong><small>用小手回应你的招呼</small></button>
+          <button data-motion="kick"><span class="motion-symbol" aria-hidden="true">↗</span><strong>踢踢脚</strong><small>开心地抬起小脚</small></button>
+          <button data-motion="stretch"><span class="motion-symbol" aria-hidden="true">↔</span><strong>伸懒腰</strong><small>一起放松一下肩膀</small></button>
+          <button data-motion="look"><span class="motion-symbol" aria-hidden="true">↶ ↷</span><strong>摇摇头</strong><small>左看看，右看看</small></button>
+          <button data-motion="sleep"><span class="motion-symbol" aria-hidden="true">☾</span><strong>打个盹</strong><small>切换困倦姿势小憩</small></button>
+          <button data-motion="turn"><span class="motion-symbol" aria-hidden="true">↻</span><strong>转身看看</strong><small>露出真正的背面姿势</small></button>
+          <button data-motion="angry" class="impact-preview"><span class="motion-symbol" aria-hidden="true">✳</span><strong>生气敲屏</strong><small>生气姿势与可关闭的裂纹</small></button>
+        </div>
+        <p id="labStatus" class="lab-status" role="status" aria-live="polite">等待你的动作指令。</p>
+        <p class="note">生气预览遵循声音、裂纹及减少动态设置；不会触发真正的到时提醒。已有学习或休息提醒时，请先确认提醒。</p>
+      </section>
+    </div>
+    <footer><b>STAY FOCUSED. STAY HUMAN.</b><br>拖动移动 · 单击互动/确认 · 双击设置 · 右键菜单<br>Ctrl+Shift+F 隐藏/显示 · 关闭终端后桌宠继续陪伴<br>非官方同人终端 · 角色与声音来源见随附 ASSET-SOURCES.md</footer>
   </main>
   <script src="settings.js"></script>
 </body>
