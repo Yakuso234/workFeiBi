@@ -1,4 +1,25 @@
 .clockwork-owl { display:block; width:100%; height:100%; overflow:visible; pointer-events:none; }
+.clockwork-owl[data-palette="neon"] {
+  --owl-shell-light:#c5c9ff; --owl-shell-mid:#747ac7; --owl-shell-dark:#424470;
+  --owl-accent-light:#87fff2; --owl-accent-mid:#41d9d5; --owl-accent-dark:#168caa;
+  --owl-cream-light:#f1f4ff; --owl-cream-dark:#bcbff0;
+  --owl-outline:#29273f; --owl-rim:#7174b7; --owl-rear-panel:#55558e;
+  --owl-metal:#ffbcd2; --owl-metal-light:#ffe4ed; --owl-headband:#45416d;
+  --owl-eye-shell:#d5d7f5; --owl-iris:#a94689; --owl-pupil:#41214b;
+  --owl-eye-outline:#54274e; --owl-eye-glint:#ffd5ee;
+}
+.clockwork-owl[data-palette="moon"] {
+  --owl-shell-light:#f4f7ff; --owl-shell-mid:#c1d5ea; --owl-shell-dark:#7c9aba;
+  --owl-accent-light:#c5beff; --owl-accent-mid:#9c96d8; --owl-accent-dark:#6e65a9;
+  --owl-cream-light:#ffffff; --owl-cream-dark:#dde8f5;
+  --owl-outline:#465974; --owl-rim:#8fa5c2; --owl-rear-panel:#94aecb;
+  --owl-metal:#d5c5ed; --owl-metal-light:#f1e7ff; --owl-headband:#7886b6;
+  --owl-eye-shell:#e9effb; --owl-iris:#587eb2; --owl-pupil:#2b425f;
+  --owl-eye-outline:#405c81; --owl-eye-glint:#d8eaff;
+}
+.clockwork-owl .owl-accessory { display:none; }
+.clockwork-owl[data-accessory="star"] [data-owl-accessory="star"],
+.clockwork-owl[data-accessory="headphones"] [data-owl-accessory="headphones"] { display:inline; }
 .clockwork-owl .owl-head { transform-box:view-box; transform-origin:250px 275px; }
 .clockwork-owl .owl-body { transform-box:view-box; transform-origin:250px 429px; }
 .clockwork-owl .owl-wing-left { transform-box:view-box; transform-origin:139px 287px; }

@@ -1,0 +1,28 @@
+.tabs{grid-template-columns:repeat(3,minmax(0,1fr))}
+.collection-card,.arcade-card{border-left-color:var(--yellow)}
+.collection-card h2.section-label,.arcade-card h2.section-label{margin-top:0}
+.character-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:18px}
+.character-card{position:relative;display:flex;flex-direction:column;min-width:0;padding:15px;border:1px solid #345564;background:linear-gradient(145deg,#162d35,#111724)}
+.character-card[data-active=true]{border-color:var(--yellow);box-shadow:inset 0 3px var(--yellow)}
+.character-card .character-art{height:164px;width:100%;object-fit:contain;filter:drop-shadow(0 6px 5px #0005)}
+.character-card h3{font-size:16px;color:#edf6f7;margin:12px 0 5px}
+.character-card .character-kind{font:10px Consolas,"Microsoft YaHei UI",monospace;color:var(--cyan);letter-spacing:1px}
+.character-card p{font-size:11px;line-height:1.8;color:var(--muted);margin:9px 0 12px}
+.character-card button{margin-top:auto;min-height:36px}
+.character-card a{color:#93dce2;font-size:10px;overflow-wrap:anywhere;margin:10px 0}
+.owl-wardrobe{margin-top:12px;grid-template-columns:repeat(2,minmax(0,1fr))}
+.owl-wardrobe select{display:block;width:100%;margin-top:10px}
+.arcade-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding:12px 0;color:var(--muted);font-size:12px}
+.arcade-stats strong{color:var(--yellow);font:28px Consolas;margin-left:8px}
+#gameProgress{width:100%;height:5px;appearance:none;border:0;margin:5px 0 13px}
+#gameProgress::-webkit-progress-bar{background:#2b3b45}#gameProgress::-webkit-progress-value{background:var(--cyan)}
+.star-field{position:relative;isolation:isolate;overflow:hidden;height:280px;border:1px solid #345964;background:radial-gradient(ellipse at 50% 90%,#104052,#080f1b 75%)}
+.star-field-grid{position:absolute;inset:0;opacity:.45;background-image:linear-gradient(#3b7e882f 1px,transparent 1px),linear-gradient(90deg,#3b7e882f 1px,transparent 1px);background-size:32px 32px;pointer-events:none}
+.game-splash{position:absolute;inset:40px 0 0;text-align:center;color:var(--yellow);font:72px Consolas;pointer-events:none;margin:0}
+.game-splash span{font:13px "Microsoft YaHei UI";color:#b5d6e0;letter-spacing:2px}
+.game-target{position:absolute;transform:translate(-50%,-50%);width:54px;height:54px;min-height:54px;padding:0;border:1px solid #cdb731;border-radius:50%;color:#fff485;background:#254c68;font:37px Consolas;box-shadow:0 0 18px #ffe33440;touch-action:manipulation}
+.game-target:hover{background:#366c83;box-shadow:0 0 28px #ffe33470}.game-target:active{transform:translate(-50%,-50%) scale(.94)}
+.arcade-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}.arcade-actions button{flex:1;min-width:130px}
+@media(max-width:560px){.tabs{grid-template-columns:repeat(2,minmax(0,1fr))}.character-cards{gap:10px}.character-card{padding:12px}.character-card .character-art{height:135px}.owl-wardrobe{grid-template-columns:1fr}.arcade-stats{gap:6px}.arcade-stats strong{font-size:24px;margin-left:3px}.star-field{height:245px}}
+@media(max-width:380px){.character-cards{grid-template-columns:1fr}}
+html[data-reduced-motion=true] .game-target:active{transform:translate(-50%,-50%)}

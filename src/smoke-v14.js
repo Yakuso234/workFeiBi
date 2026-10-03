@@ -1,0 +1,101 @@
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+module.exports=async({pet,w,action,state,timer,context,waitFor,capture})=>{
+  const execute=code=>w.webContents.executeJavaScript(code);
+  const petExecute=code=>pet.webContents.executeJavaScript(code);
+  // Appearance applies to the real vector in both windows, including alpha
+  // capture outside its old outline. Hidden accessories must not intercept it.
+  await execute(`window.workFeiBi.saveSettings({character:'owl',owlPalette:'neon',owlAccessory:'star',idleMotion:false,reducedMotion:false}).then(s=>render(s,true))`);
+  await waitFor(()=>petExecute(`owl.svg.dataset.palette==='neon'&&owl.svg.dataset.accessory==='star'`),'owl appearance not applied');
+  const owlPoint=async(x,y)=>petExecute(`(()=>{const p=new DOMPoint(${x},${y}).matrixTransform(owl.svg.getScreenCTM());return hitTest(p.x,p.y);})()`);
+  assert.equal(await owlPoint(331,83),true);
+  assert.equal(await petExecute(`getComputedStyle(owl.svg.querySelector('stop')).stopColor`),'rgb(197, 201, 255)');
+  await capture(pet,'owl-neon-star.png');
+  await execute(`window.workFeiBi.saveSettings({owlPalette:'moon',owlAccessory:'headphones'})`);
+  assert.equal(await owlPoint(250,65),true);
+  await capture(pet,'owl-moon-headphones.png');
+  await execute(`window.workFeiBi.saveSettings({owlAccessory:'none'})`);
+  assert.equal(await owlPoint(250,65),false);assert.equal(await owlPoint(331,83),false);
+  // Archive quick switch mutates only the selected character, not the open
+  // form's unsaved draft or the countdown. Four cards are real rendered DOM.
+  await execute(`document.querySelector('[data-tab="collection"]').click();document.getElementById('studyMinutes').value='77';new Promise(requestAnimationFrame)`);
+  assert.equal(await execute(`document.querySelectorAll('.character-card').length`),4);
+  const beforeSwitch=state().timer;
+  await execute(`document.querySelector('[data-select-character="miku"]').click()`);
+  await waitFor(()=>state().settings.character==='miku','archive selection did not save');
+  assert.equal(await execute(`document.getElementById('studyMinutes').value`),'77');
+  assert.equal(state().timer.phase,beforeSwitch.phase);assert.equal(state().timer.remaining,beforeSwitch.remaining);
+  await waitFor(()=>petExecute(`!mikuModel.hidden&&miku.canvas.dataset.frame!==undefined`),'miku not rendered');
+  assert.equal(await petExecute(`image.hidden&&faceCanvas.hidden&&owlModel.hidden`),true);
+  assert.equal(await petExecute(`hitTest(1,1)`),false);
+  assert.equal(await petExecute(`(()=>{const b=miku.canvas.getBoundingClientRect();return hitTest(b.x+b.width/2,b.y+b.height*.65);})()`),true);
+  const assets=await petExecute(`(async()=>{const items=[];for(const files of Object.values(MikuPet.frameManifest)){for(const src of files.frames){const i=new Image();i.src='../assets/miku/'+src;await i.decode();items.push([i.naturalWidth,i.naturalHeight]);}}return items;})()`);
+  assert.equal(assets.length,40);assert.ok(assets.every(([x,y])=>x===1024&&y===1024));
+  await capture(pet,'miku.png');
+  await capture(w,'collection-compact.png');
+  assert.equal(await execute(`document.querySelector('[data-motion="turn"]').hidden`),true);
+  assert.equal(await execute(`window.workFeiBi.previewAction('turn').then(()=>false,()=>true)`),true);
+  await execute(`window.workFeiBi.previewAction('wave')`);
+  await waitFor(()=>petExecute(`miku.canvas.dataset.track==='scratch'`),'miku scratch not selected');
+  const first=await petExecute(`({frame:miku.canvas.dataset.frame,pixels:Array.from(miku.canvas.getContext('2d').getImageData(0,0,1024,1024).data).filter((v,i)=>i%41===0)})`);
+  await new Promise(r=>setTimeout(r,260));
+  const second=await petExecute(`({frame:miku.canvas.dataset.frame,pixels:Array.from(miku.canvas.getContext('2d').getImageData(0,0,1024,1024).data).filter((v,i)=>i%41===0)})`);
+  assert.notEqual(first.frame,second.frame);assert.notDeepEqual(first.pixels,second.pixels);
+  await capture(pet,'miku-scratch.png');
+  await execute(`window.workFeiBi.previewAction('sleep')`);
+  await waitFor(()=>petExecute(`miku.canvas.dataset.track==='sleep'`),'miku sleep not selected');
+  await capture(pet,'miku-sleep.png');
+  await execute(`window.workFeiBi.saveSettings({reducedMotion:true});window.workFeiBi.previewAction('wave')`);
+  await new Promise(r=>setTimeout(r,100));const staticFrame=await petExecute(`miku.canvas.dataset.frame`);
+  await new Promise(r=>setTimeout(r,500));assert.equal(await petExecute(`miku.canvas.dataset.frame`),staticFrame);
+  assert.equal(await petExecute(`getComputedStyle(stage).transform`),'none');
+  await execute(`window.workFeiBi.saveSettings({reducedMotion:false}).then(s=>render(s,true))`);
+  // Arcade data is separate from study / shared companion progression.
+  action('reset');if(state().timer.phase==='rest')action('skip');
+  const protectedData=JSON.stringify({journal:state().journal,companion:state().companion,timer:state().timer});
+  await execute(`document.querySelector('[data-tab="arcade"]').click();document.getElementById('gameStart').click()`);
+  await waitFor(()=>state().game.active,'game start UI did not invoke main');
+  assert.equal(await execute(`document.getElementById('gameTarget').hidden`),false);
+  const target=state().game.target.id;
+  await execute(`window.workFeiBi.gameAction('hit',${JSON.stringify(target)})`);assert.equal(state().game.score,1);
+  await execute(`window.workFeiBi.gameAction('hit',${JSON.stringify(target)})`);assert.equal(state().game.score,1);
+  await execute(`window.workFeiBi.gameAction('hit',${JSON.stringify(state().game.target.id)})`);assert.equal(state().game.score,1);
+  await new Promise(r=>setTimeout(r,280));
+  await execute(`document.getElementById('gameTarget').click()`);
+  await waitFor(()=>state().game.score===2,'second valid target not counted');
+  await capture(w,'arcade-compact.png');
+  assert.equal(await execute(`document.documentElement.scrollWidth<=innerWidth`),true);
+  await execute(`window.workFeiBi.gameAction('start')`);assert.equal(state().game.score,2);
+  await execute(`document.querySelector('[data-tab="dashboard"]').click()`);
+  await waitFor(()=>!state().game.active,'leaving page did not cancel');
+  assert.equal(state().game.result.reason,'left');assert.equal(state().game.played,0);
+  assert.equal(JSON.stringify({journal:state().journal,companion:state().companion,timer:state().timer}),protectedData);
+  // Send start then immediately leave before renderer receives its response.
+  await execute(`document.querySelector('[data-tab="arcade"]').click();document.getElementById('gameStart').click();document.querySelector('[data-tab="collection"]').click();new Promise(r=>setTimeout(r,200))`);
+  assert.equal(state().game.active,false);assert.equal(state().game.played,0);
+  await execute(`window.workFeiBi.gameAction('start')`);action('toggle');
+  assert.equal(state().game.active,false);assert.equal(state().game.result.reason,'study');
+  assert.equal(await execute(`window.workFeiBi.gameAction('start').then(()=>false,()=>true)`),true);
+  action('toggle');
+  await execute(`window.workFeiBi.gameAction('start')`);
+  await execute(`window.workFeiBi.saveSettings({character:'phoebe'})`);
+  assert.equal(state().game.active,false);assert.equal(state().game.result.reason,'character');
+  await execute(`window.workFeiBi.gameAction('start')`);
+  timer.toggle();timer.deadline=Date.now()-1;action('interact:pat');
+  await waitFor(()=>state().timer.reminding&&!state().game.active,'reminder failed to take priority over game');
+  assert.equal(state().game.result.reason,'reminder');assert.equal(state().game.played,0);
+  assert.equal(await execute(`window.workFeiBi.gameAction('start').then(()=>false,()=>true)`),true);
+  action('reset');
+  // Accelerate only the game model's start time. Completion still flows through
+  // the real main-process tick, writes config and emits a pet reaction once.
+  const game=context.getGame(),past=Date.now()-45050;
+  game.start(past);game.hit(game.snapshot(past).target.id,past);
+  await waitFor(()=>state().game.played===1,'game timeout did not persist');
+  assert.equal(state().game.best,1);assert.equal(state().game.totalStars,1);
+  assert.equal(JSON.parse(fs.readFileSync(context.configPath,'utf8')).game.played,1);
+  await new Promise(r=>setTimeout(r,300));assert.equal(state().game.played,1);
+  assert.equal(await execute(`window.workFeiBi.gameAction('__proto__').then(()=>false,()=>true)`),true);
+  await execute(`window.workFeiBi.saveSettings({character:'miku',idleMotion:true}).then(s=>render(s,true));document.querySelector('[data-tab="collection"]').click();new Promise(requestAnimationFrame)`);
+  assert.equal(await execute(`document.documentElement.scrollWidth<=innerWidth`),true);
+  await capture(w,'collection-compact.png');
+};

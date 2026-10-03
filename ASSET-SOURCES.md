@@ -2,9 +2,17 @@
 
 本项目为本地个人同人桌宠，非官方产品。
 
+## 初音未来连续帧
+
+- 原作者：stushansusu（涂山苏苏），素材来源 [zhu1090093659/dsh-pet](https://github.com/zhu1090093659/dsh-pet/tree/36f605619bdf5445e84493b7faaf2bbb51077b14/assets/miku)，固定提交 `36f605619bdf5445e84493b7faaf2bbb51077b14`，原作者贡献记录 [dsh-web #1031](https://github.com/zhu1090093659/dsh-web/pull/1031)。
+- `assets/miku/thumb/` 九轨 40 张 WebP 均为 1024×1024 且带透明通道，原文件不修改；另含原始预览图、`pet.json`、完整 `THIRD_PARTY_NOTICES.md` 和 `UPSTREAM-LICENSE`。40 帧合计 6,136,900 字节，完整接入目录 6,320,344 字节。
+- 图片 MIT 许可由原始 pet.json 和 THIRD_PARTY_NOTICES 中的作者声明及 Copyright (c) 2026 stushansusu 全文支持；上游根 LICENSE 是 Apache-2.0，属上游代码，不能冒称图片 MIT。这里只下载素材，没有复制上游程序或运行时。
+- This desktop companion features an adaptation of Hatsune Miku, © Crypton Future Media, Inc. 2007, licensed under [CC BY-NC 3.0](https://creativecommons.org/licenses/by-nc/3.0/). 角色权利与作者画作权利分开，本项目维持个人非商业同人用途、不售卖或冒称官方。依据 [Piapro 官方创作者说明](https://piapro.net/intl/en_for_creators.html)，角色条件不覆盖他人歌曲、声库、视频或二创画作本身；作者对本套图的许可另保留在 NOTICE 中。
+- 仅播放白名单 idle/happy/blink1/blink2/sleep/angry/scratch/drag/standup，200ms/帧。原始 pet.json 中 work/eat/shop/flirty 等描述仅保留来源上下文，不表示已接入；其文件未下载。沒有 back/turn 或专门 wave 轨，初音隐藏转身，挥手按钮显示「挠挠头」。不把正面翻转冒称背面，也未附带初音歌曲/采样语音。
+
 ## 原创发条鸮
 
-v1.3 的发条鸮由 `src/owl.js` 内的 SVG 和 `src/owl.css` 关节动效代码绘制。翅膀、脚、眼皮、头部及后背为独立图层，不使用第三方人物位图或采样语音；默认电子提示音由 Web Audio 合成。此项与下述菲比/弗糯糯素材来源分开记录，不将既有素材的许可自动套用于新形象。
+v1.3 的发条鸮由 `src/owl.js` 内的 SVG 和 `src/owl.css` 关节动效代码绘制。翅膀、脚、眼皮、头部及后背为独立图层，不使用第三方人物位图或采样语音；v1.4 增加原创霓虹/月光配色、星星发夹与耳机，前后均跟随模型。默认电子提示音由 Web Audio 合成。此项与下述菲比/弗糯糯素材来源分开记录，不将既有素材的许可自动套用于新形象。
 
 ## 菲比原始素材
 

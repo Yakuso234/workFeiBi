@@ -7,13 +7,14 @@
   <title>workFeiBi 设置</title>
   <link rel="stylesheet" href="settings.css" />
   <link rel="stylesheet" href="owl.css" />
+  <link rel="stylesheet" href="lounge.css" />
 </head>
 <body>
   <main>
-    <div class="system-bar"><span>NC // PERSONAL LINK</span><span>V1.3 · ● LOCAL ONLY</span></div>
+    <div class="system-bar"><span>NC // PERSONAL LINK</span><span>V1.4 · ● LOCAL ONLY</span></div>
     <header><div><small>FOCUS PROTOCOL / 2077</small><h1>workFeiBi<span>_</span></h1><p>夜之城 · 专注陪伴终端</p><b class="tag">EDGERUNNER MODE</b></div><img id="portrait" src="../assets/images/phoebe_1.png" alt="菲比啾比" /><div id="owlPortrait" hidden></div></header>
     <p id="storageWarning" class="warning" role="alert" hidden></p>
-    <nav class="tabs" aria-label="终端页面"><button data-tab="dashboard" aria-controls="dashboard" aria-pressed="true">01 / 专注舱</button><button data-tab="journal" aria-controls="journal" aria-pressed="false">02 / 任务档案</button><button data-tab="config" aria-controls="config" aria-pressed="false">03 / 参数配置</button><button data-tab="laboratory" aria-controls="laboratory" aria-pressed="false">04 / 动作实验室</button></nav>
+    <nav class="tabs" aria-label="终端页面"><button data-tab="dashboard" aria-controls="dashboard" aria-pressed="true">01 / 专注舱</button><button data-tab="journal" aria-controls="journal" aria-pressed="false">02 / 任务档案</button><button data-tab="config" aria-controls="config" aria-pressed="false">03 / 参数配置</button><button data-tab="laboratory" aria-controls="laboratory" aria-pressed="false">04 / 动作实验室</button><button data-tab="collection" aria-controls="collection" aria-pressed="false">05 / 角色收藏</button><button data-tab="arcade" aria-controls="arcade" aria-pressed="false">06 / 休息街机</button></nav>
     <p id="actionStatus" class="note action-status" role="status" aria-live="polite"></p>
     <div id="dashboard" class="tab-panel">
     <section class="timer-card">
@@ -49,7 +50,7 @@
       <section class="companion-card"><h2 class="section-label">MISSIONS / 给今天一个小目标</h2><form id="taskForm"><input id="taskText" maxlength="100" placeholder="例如：完成两道数组题" aria-label="新任务" required /><button type="submit">＋ 添加</button></form><p id="taskStatus" class="note" role="status"></p><ul id="taskList"></ul></section>
       <section class="companion-card export-card">
         <h2 class="section-label">DATA PORT / 带走你的小进步 <span>本机导出</span></h2>
-        <p class="note">CSV 汇总最近 90 个已记录日期的完整专注轮次和计时；JSON 还包含当前任务文字与三个角色共享的陪伴成长数据。只导出到你选择的位置，不含声音文件，也不会上传云端。分享 JSON 前，请检查任务文字中的私人信息。</p>
+        <p class="note">CSV 汇总最近 90 个已记录日期的完整专注轮次和计时；JSON 还包含当前任务文字与角色共享的陪伴成长数据。只导出到你选择的位置，不含声音文件、外观和小游戏成绩，也不会上传云端。分享 JSON 前，请检查任务文字中的私人信息。</p>
         <div class="export-actions"><button data-export="csv">↓ 导出每日统计 CSV</button><button data-export="json">↓ 导出完整记录 JSON</button></div>
         <p id="exportStatus" class="note" role="status" aria-live="polite">用于查看或备份，不会改变现有记录；暂不支持重新导入。</p>
       </section>
@@ -65,7 +66,7 @@
       <label>桌宠大小（%）<input id="petScale" type="range" min="70" max="150" step="5" /><output id="petScaleValue">100%</output></label>
     </section>
     <section class="switches">
-      <label class="wide-field">角色 <select id="character"><option value="phoebe">菲比啾比</option><option value="nuonuo">弗糯糯</option><option value="owl">发条鸮 · 原创</option></select></label>
+      <label class="wide-field">角色 <select id="character"><option value="phoebe">菲比啾比</option><option value="nuonuo">弗糯糯</option><option value="owl">发条鸮 · 原创</option><option value="miku">初音未来 · 连续帧</option></select></label>
       <label class="wide-field"><input id="soundEnabled" type="checkbox" /> 开启角色声音与提醒音效</label>
       <label><input id="idleMotion" type="checkbox" /> 自动播放待机动作</label>
       <label>待机频率 <select id="idleFrequency"><option value="calm">安静一点</option><option value="normal">自然陪伴</option><option value="lively">活泼一点</option></select></label>
@@ -78,11 +79,43 @@
       <label>每日目标（轮）<input id="dailyGoal" type="number" min="1" max="20" /></label>
     </section>
     <p id="outfitNote" class="note">换装只应用于菲比，切换角色不会丢失你的换装选择。发条鸮是原创矢量机械伙伴，带独立的翅膀、脚和眼睛动作。</p>
+    <section class="settings-grid owl-wardrobe">
+      <label>发条鸮配色<select id="owlPalette"><option value="classic">经典鎏金</option><option value="neon">霓虹电路</option><option value="moon">月光星尘</option></select></label>
+      <label>发条鸮头饰<select id="owlAccessory"><option value="none">无头饰</option><option value="star">星星发夹</option><option value="headphones">陪伴耳机</option></select></label>
+    </section>
     <button id="save" class="save">保存设置</button>
     <div class="voice-actions"><button id="preview">试听当前角色音效</button><button id="importVoice">导入当前角色音效</button></div>
     <p id="voiceSource" class="note"></p>
     <p id="voiceStatus" class="note" role="status">支持 MP3 / WAV / OGG，最大 5 MB，仅保存在本机，不上传。</p>
     <p class="note">时长设置在下一轮生效；要立即应用，请保存后重置。关闭设置窗口后桌宠仍在。Ctrl+Shift+F 可隐藏/显示。</p>
+    </div>
+    <div id="collection" class="tab-panel" hidden>
+      <section class="companion-card collection-card">
+        <h2 class="section-label">05 / CHARACTER ARCHIVE <span>本机伙伴档案</span></h2>
+        <h2 class="lab-title">今天，谁来陪你？</h2>
+        <p class="note">点击「出场」立即切换角色，保留计时进度和其他尚未保存的表单内容。每位伙伴的动作实现与素材来源标在卡片里，成长数据暂时共享。</p>
+        <div id="characterCards" class="character-cards"></div>
+        <p id="collectionStatus" class="lab-status" role="status" aria-live="polite">选择一个伙伴出场。</p>
+        <p class="note">菲比有三种外观；发条鸮有三套配色和两款头饰，均在「参数配置」保存后应用。切换角色不会丢失外观选择。</p>
+      </section>
+    </div>
+    <div id="arcade" class="tab-panel" hidden>
+      <section class="companion-card arcade-card">
+        <h2 class="section-label">06 / STAR CATCHER <span>45 SEC · LOCAL ARCADE</span></h2>
+        <h2 class="lab-title">一起接住小星星。</h2>
+        <p class="note">休息阶段或暂停学习时可以玩。点亮星星，桌宠会在一旁为你加油；最多 45 秒，到期提醒立即优先。也可以用 Tab 选中星星，再按空格或 Enter。</p>
+        <div class="arcade-stats"><span>这局 <strong id="gameScore">0</strong></span><span>纪录 <strong id="gameBest">0</strong></span><span>剩余 <strong id="gameTime">45</strong>s</span></div>
+        <progress id="gameProgress" value="45000" max="45000" aria-label="小游戏剩余时间"></progress>
+        <div id="starField" class="star-field">
+          <div class="star-field-grid" aria-hidden="true"></div>
+          <p id="gameSplash" class="game-splash">✦<br><span>小星星准备好啦</span></p>
+          <button id="gameTarget" class="game-target" aria-label="接住星星" hidden>✦</button>
+        </div>
+        <div class="arcade-actions"><button id="gameStart" class="primary">开始 45 秒小游戏</button><button id="gameCancel" disabled>结束这局</button></div>
+        <p id="gameStatus" class="lab-status" role="status" aria-live="polite">先完成一小段专注，再来休息一下吧。</p>
+        <p id="gameHistory" class="note">已完成 0 局 · 累计 0 颗星星</p>
+        <p class="note">游戏不会增加专注轮次或陪伴数值；离开街机页、关闭终端、切换角色或开始学习会结束当前局，未结束的局不计成绩。</p>
+      </section>
     </div>
     <div id="laboratory" class="tab-panel" hidden>
       <section class="companion-card lab-card">
@@ -101,13 +134,14 @@
         </div>
         <p id="labStatus" class="lab-status" role="status" aria-live="polite">等待你的动作指令。</p>
         <p class="note">生气预览遵循声音、裂纹及减少动态设置；不会触发真正的到时提醒。已有学习或休息提醒时，请先确认提醒。</p>
-        <p class="note model-note">模型说明：菲比与糯糯使用高清姿势图、局部眨眼和整体动效；原创发条鸮使用可分层运动的矢量模型。新增模型不会替换原有两个角色。</p>
+        <p class="note model-note">菲比与糯糯使用姿势图、局部眨眼和整体动效；发条鸮使用分层矢量模型；初音使用 40 张原始连续帧，「挥手/抬脚」对应挠头/开心动作，没有背面轨。新增模型不会替换原有角色。</p>
       </section>
     </div>
     <footer><b>STAY FOCUSED. STAY HUMAN.</b><br>拖动移动 · 单击互动/确认 · 双击设置 · 右键菜单<br>Ctrl+Shift+F 隐藏/显示 · 关闭终端后桌宠继续陪伴<br>非官方同人终端 · 角色与声音来源见随附 ASSET-SOURCES.md</footer>
   </main>
   <script src="characters.js"></script>
   <script src="owl.js"></script>
+  <script src="lounge.js"></script>
   <script src="settings.js"></script>
 </body>
 </html>

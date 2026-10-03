@@ -9,6 +9,7 @@
     if(quiet(settings,timer))return ['blink'];
     const pool=timer.phase==='rest'?['sleep','sway','blink','look','turn','stretch']:['sway','happy','hop','blink','wave','kick','stretch','look','turn'];
     // The generated special poses wear the normal hat. Preserve other costumes.
+    if(settings.character==='miku')return pool.filter(name=>name!=='turn');
     return settings.character==='phoebe'&&settings.outfit!==1?pool.filter(name=>['sway','happy','hop','blink','look'].includes(name)):pool;
   }
   function idleDelay(frequency='normal',random=Math.random) {

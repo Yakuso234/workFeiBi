@@ -13,6 +13,12 @@ for(const name of ['src','docs','package.json','README.md','ASSET-LICENSE.txt','
 for(const name of ['images/phoebe_0.png','images/phoebe_1.png','images/phoebe_2.png','images/phoebe_wave.png','images/phoebe_sleep.png','images/phoebe_angry.png','images/phoebe_back.png','images/nuonuo_front.png','images/nuonuo_back.png','images/nuonuo_wave.png','images/nuonuo_drowsy.png','images/nuonuo_angry.png','audio/phoebe_chubby_0.mp3']){
   const target=path.join(app,'assets',name);fs.mkdirSync(path.dirname(target),{recursive:true});fs.copyFileSync(path.join(root,'assets',name),target);
 }
+// Frame list comes from the fixed, Node-safe renderer module. The full upstream
+// manifest is kept for attribution only; unused tracks/reference files stay out.
+for(const name of [...require('../src/miku').assetFiles,'previews/idle.webp','pet.json','THIRD_PARTY_NOTICES.md','UPSTREAM-LICENSE']){
+  const source=path.join(root,'assets','miku',name),target=path.join(app,'assets','miku',name);
+  fs.mkdirSync(path.dirname(target),{recursive:true});fs.copyFileSync(source,target);
+}
 // Local permission is not permission to redistribute: public builds exclude
 // these files by default. Even an explicit local build uses an exact allowlist.
 if(process.argv.includes('--with-local-audio')){

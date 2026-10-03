@@ -13,6 +13,16 @@ test('恢复未确认提醒与角色设置校验',()=>{
  assert.equal(restored.reminding,true);assert.equal(restored.angry,true);assert.equal(restored.rounds,1);
  assert.equal(sanitize({character:'../bad'}).character,'phoebe');assert.equal(sanitize({character:'nuonuo'}).character,'nuonuo');
  assert.equal(sanitize({character:'owl'}).character,'owl');assert.equal(sanitize({character:'__proto__'}).character,'phoebe');
+ assert.equal(sanitize({character:'miku'}).character,'miku');
+});
+test('发条鸮外观兼容旧配置并限制为明确的配色和头饰',()=>{
+ assert.equal(sanitize({}).owlPalette,'classic');assert.equal(sanitize({}).owlAccessory,'none');
+ assert.equal(sanitize({owlPalette:'neon',owlAccessory:'star'}).owlPalette,'neon');
+ assert.equal(sanitize({owlPalette:'moon',owlAccessory:'headphones'}).owlAccessory,'headphones');
+ const bad=sanitize({owlPalette:'__proto__',owlAccessory:['star']});
+ assert.equal(bad.owlPalette,'classic');assert.equal(bad.owlAccessory,'none');
+ const timer=new Timer({owlPalette:'moon',owlAccessory:'star'});timer.configure({character:'miku'});
+ assert.equal(timer.settings.owlPalette,'moon');assert.equal(timer.settings.owlAccessory,'star');
 });
 test('完整学习、等待60秒、生气、确认休息与返回学习',()=>{
  const t=new Timer({studyMinutes:1,restMinutes:1});t.toggle(0);

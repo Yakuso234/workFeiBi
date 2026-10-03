@@ -8,26 +8,35 @@ const {Voices}=require('./voices');
 const characters=require('./characters');
 const {createExport}=require('./export');
 const {randomUUID}=require('node:crypto');
+const {RestGame}=require('./rest-game');
 const storage=require('./storage');
 let companion=new Companion();
 const smoke=process.argv.includes('--smoke-test');
 if(smoke)app.setPath('userData',path.join(__dirname,'../.qa-profile'));
 app.setName('workFeiBi');
-let pet,settingsWindow,impactWindow,tray,timer,journal,voices,position,drag,moveLoop,saveDelay,tickLoop,checkpointLoop,impactDelay;
+let pet,settingsWindow,impactWindow,tray,timer,journal,voices,game,position,drag,moveLoop,saveDelay,tickLoop,checkpointLoop,impactDelay;
 let quitting=false,storageWarning='',recordedRounds=0,impactReady,impactSequence=0,exporting=false;
 const localNuonuo=[1,2,3].every(n=>fs.existsSync(path.join(__dirname,`../local-media/nuonuo/nuonuo-${n}.wav`)));
 const previewDurations={blink:900,wave:2800,kick:3200,stretch:3600,look:3000,sleep:8000,turn:3000,angry:3000};
 const configPath=()=>path.join(app.getPath('userData'),'settings.json');
 function persist(strict=false){
   try{
-    storage.save(configPath(),{settings:timer.settings,position,session:timer.serialize(),journal:journal.serialize(),companion:companion.serialize()});
+    storage.save(configPath(),{settings:timer.settings,position,session:timer.serialize(),journal:journal.serialize(),companion:companion.serialize(),game:game.serialize()});
     storageWarning='';return true;
   }catch(error){
     storageWarning='本地保存失败，请检查磁盘空间和配置目录权限。';console.error(storageWarning,error.message);
     if(strict)throw new Error(storageWarning);return false;
   }
 }
-function state(){return {timer:timer.snapshot(),settings:timer.settings,companion:companion.snapshot(),journal:journal.snapshot(),voices:{...voices.snapshot(),localNuonuo},storageWarning};}
+function state(){return {timer:timer.snapshot(),settings:timer.settings,companion:companion.snapshot(),journal:journal.snapshot(),game:game.snapshot(),voices:{...voices.snapshot(),localNuonuo},storageWarning};}
+function gameMessage(text,motion='happy'){return {type:'game',text,motion,duration:2600};}
+function advanceGame(now=Date.now()){
+  if(!game.snapshot(now).active)return;
+  const reason=timer.reminding?'reminder':timer.running&&timer.phase==='study'?'study':!settingsWindow||settingsWindow.isDestroyed()||!settingsWindow.isVisible()||settingsWindow.isMinimized()?'window':null;
+  if(reason){game.cancel(reason,now);return reason==='reminder'?{type:'game-canceled',reason}:gameMessage(reason==='study'?'星星先收好，啾比陪你认真学习。':'这局先结束啦，休息和提醒更重要。','wave');}
+  const finished=game.update(now);
+  if(finished)return gameMessage(`接到 ${finished.score} 颗星星${finished.newBest?'，刷新纪录啦！':'，做得好！'}看看远处，放松一下吧。`);
+}
 function broadcast(event){
   const value=state();
   for(const w of [pet,settingsWindow])if(w&&!w.isDestroyed())w.webContents.send('state',value);
@@ -60,6 +69,7 @@ function previewAction(motion){
   const dueEvent=timer.update();recordCompletion();
   if(dueEvent){persist();broadcast(dueEvent);}
   if(timer.reminding)throw new Error('请先确认到期提醒，再预览动作。');
+  if(motion==='turn'&&!characters.get(timer.settings.character).supportsBack)throw new Error('当前角色没有背面素材');
   clearImpact();showPet();
   broadcast({type:'preview-action',motion,duration:previewDurations[motion]});
   if(motion==='angry')void showImpact();
@@ -87,32 +97,35 @@ function openSettings(){
   const area=screen.getDisplayMatching(pet.getBounds()).workArea;
   settingsWindow=new BrowserWindow({width:Math.min(960,area.width),height:Math.min(860,area.height),minWidth:450,minHeight:500,title:'workFeiBi · 夜之城专注终端',autoHideMenuBar:true,backgroundColor:'#090c12',webPreferences:options()});
   secure(settingsWindow);settingsWindow.loadFile(path.join(__dirname,'settings.html'));
-  settingsWindow.on('closed',()=>{settingsWindow=null;});
+  settingsWindow.on('closed',()=>{settingsWindow=null;if(game.cancel('window'))broadcast();});
 }
 function action(name){
   if(typeof name!=='string')return;
   // Update first so a click at the deadline cannot skip a completed session.
   const dueEvent=timer.update();recordCompletion();
+  const gameBefore=advanceGame();
   if(name.startsWith('interact:')){
+    if(name==='interact:turn'&&!characters.get(timer.settings.character).supportsBack){companion.message='这个角色还没有背面动作，试试其他互动吧。';if(dueEvent||gameBefore)persist();broadcast(dueEvent||gameBefore);return;}
     const event=companion.interact(name.slice(9),timer.reminding);
-    if(event||dueEvent)showPet();if(event||dueEvent)persist();broadcast(dueEvent||event);return;
+    if(event||dueEvent||gameBefore)showPet();if(event||dueEvent||gameBefore)persist();broadcast(dueEvent||gameBefore||event);return;
   }
   let event;
   if(name==='toggle')event=dueEvent||timer.toggle();
   else if(name==='ack')event=timer.ack();
   else if(name==='reset')timer.reset();
   else if(name==='skip')timer.skip();
-  else if(name==='preview'){broadcast(dueEvent||'preview');showPet();if(dueEvent)persist();return;}
+  else if(name==='preview'){broadcast(dueEvent||gameBefore||'preview');showPet();if(dueEvent||gameBefore)persist();return;}
   else return;
+  const gameEvent=advanceGame()||gameBefore;
   if(['ack','reset','skip'].includes(name)||event==='acknowledged')clearImpact();
-  persist();broadcast(event);
+  persist();broadcast(event||gameEvent);
 }
 function menu(){return Menu.buildFromTemplate([
   {label:'显示桌宠',click:showPet},{label:'专注终端 / 设置',click:openSettings},
   {label:timer.reminding?'确认提醒，进入下一轮':timer.running?'暂停计时':'开始 / 继续计时',click:()=>action('toggle')},
   {label:'重置本轮',click:()=>action('reset')},{label:'跳过本轮',click:()=>action('skip')},
   {type:'separator'},{label:'♡ 摸摸头',click:()=>action('interact:pat')},{label:'◇ 喂点心',click:()=>action('interact:feed')},{label:'↗ 一起伸懒腰',click:()=>action('interact:stretch')},
-  {label:'☾ 打个盹',click:()=>action('interact:sleep')},{label:'↻ 转身看看',click:()=>action('interact:turn')},
+  {label:'☾ 打个盹',click:()=>action('interact:sleep')},{label:'↻ 转身看看',enabled:characters.get(timer.settings.character).supportsBack,click:()=>action('interact:turn')},
   {type:'separator'},{label:'隐藏桌宠（托盘可恢复）',click:hidePet},{label:'退出 workFeiBi',click:()=>app.quit()},
 ]);}
 function endDrag(){
@@ -123,6 +136,29 @@ function trusted(event){return Boolean(timer&&[pet,settingsWindow].some(w=>w&&!w
 function handle(channel,fn){ipcMain.handle(channel,(event,...args)=>{if(!trusted(event))throw new Error('不允许的请求来源');return fn(...args);});}
 function on(channel,fn){ipcMain.on(channel,(event,...args)=>{if(trusted(event))fn(event,...args);});}
 handle('get-state',()=>state());
+handle('game-action',(name,targetId)=>{
+  if(!['start','hit','cancel','leave'].includes(name))throw new Error('未知小游戏操作');
+  const now=Date.now(),dueEvent=timer.update(now);recordCompletion();
+  const priorEvent=advanceGame(now);
+  if(dueEvent||priorEvent){persist();broadcast(dueEvent||priorEvent);}
+  if(name==='cancel'||name==='leave'){
+    if(game.cancel(name==='leave'?'left':'user',now))broadcast(gameMessage('星星收好啦，啾比陪你慢慢来。','wave'));
+    return state();
+  }
+  if(timer.reminding||timer.running&&timer.phase==='study')throw new Error('请在休息或暂停时玩，先确认提醒。');
+  if(!settingsWindow||settingsWindow.isDestroyed()||!settingsWindow.isVisible()||settingsWindow.isMinimized())throw new Error('请在终端的休息街机开启小游戏');
+  if(name==='start'){
+    if(game.start(now)){showPet();broadcast(gameMessage('来接小星星吧！啾比在旁边为你加油。','wave'));}
+  }else{
+    if(typeof targetId!=='string'||targetId.length>160)throw new Error('无效星星');
+    if(game.hit(targetId,now)){
+      const finished=advanceGame(now);
+      if(finished){persist();broadcast(finished);}
+      else broadcast(game.snapshot(now).score%5===0?gameMessage(`已经 ${game.snapshot(now).score} 颗啦，啾比给你加油！`):undefined);
+    }
+  }
+  return state();
+});
 handle('preview-action',previewAction);
 handle('get-voice',character=>voices.get(character));
 handle('import-voice',async()=>{
@@ -136,6 +172,7 @@ handle('save-settings',input=>{
   if(!input||typeof input!=='object'||Array.isArray(input))throw new Error('无效设置');
   const previous=timer.settings;timer.configure(input);
   try{persist(true);}catch(error){timer.settings=previous;throw error;}
+  if(previous.character!==timer.settings.character)game.cancel('character');
   if(!timer.settings.impactEnabled||timer.settings.reducedMotion)clearImpact();
   const b=pet.getBounds(),scale=timer.settings.petScale/100;
   pet.setBounds(bounded({...b,width:Math.round(300*scale),height:Math.round(355*scale)}));
@@ -191,6 +228,7 @@ else{
     timer=new Timer(sanitize(stored.settings||stored));timer.restore(stored.session);
     recordedRounds=timer.rounds;journal=new Journal(stored.journal);voices=new Voices(path.join(app.getPath('userData'),'voices'));
     companion=new Companion(stored.companion);
+    game=new RestGame(stored.game);
     const area=screen.getPrimaryDisplay().workArea,scale=timer.settings.petScale/100;
     const size={width:Math.round(300*scale),height:Math.round(355*scale)};
     position=Array.isArray(stored.position)&&stored.position.length===2&&stored.position.every(Number.isFinite)?stored.position:[area.x+area.width-size.width-20,area.y+area.height-size.height-10];
@@ -203,10 +241,10 @@ else{
     tray.on('right-click',()=>tray.popUpContextMenu(menu()));tray.on('click',showPet);
     globalShortcut.register('CommandOrControl+Shift+F',()=>pet.isVisible()?hidePet():showPet());
     screen.on('display-removed',()=>{endDrag();showPet();});
-    tickLoop=setInterval(()=>{const event=timer.update();recordCompletion();if(event){showPet();persist();}broadcast(event);},250);
+    tickLoop=setInterval(()=>{const event=timer.update();recordCompletion();const gameEvent=advanceGame();if(event||gameEvent){showPet();persist();}broadcast(event||gameEvent);},250);
     checkpointLoop=setInterval(()=>{if(timer.running)persist();},15000);
     if(!stored.settings)openSettings();
-    if(smoke)require('./smoke')(pet,()=>settingsWindow,openSettings,action,state,timer,{getImpact:()=>impactWindow,configPath:configPath()}).then(()=>app.quit()).catch(error=>{console.error(error);app.exit(1);});
+    if(smoke)require('./smoke')(pet,()=>settingsWindow,openSettings,action,state,timer,{getImpact:()=>impactWindow,configPath:configPath(),getGame:()=>game}).then(()=>app.quit()).catch(error=>{console.error(error);app.exit(1);});
   }).catch(error=>{console.error(error);app.exit(1);});
   app.on('before-quit',()=>{quitting=true;if(timer){timer.update();recordCompletion();persist();}clearInterval(moveLoop);clearInterval(tickLoop);clearInterval(checkpointLoop);clearTimeout(saveDelay);clearTimeout(impactDelay);globalShortcut.unregisterAll();});
   app.on('window-all-closed',()=>{});

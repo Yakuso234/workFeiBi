@@ -16,6 +16,10 @@ html, body { width:100%; height:100%; margin:0; overflow:hidden; background:tran
 .pet-stage img { position:absolute; width:100%; height:100%; object-fit:contain; image-rendering:auto; pointer-events:none; z-index:2; }
 #faceOverlay { position:absolute; width:100%; height:100%; object-fit:contain; pointer-events:none; z-index:3; }
 #owlModel { position:absolute; inset:0; z-index:2; pointer-events:none; }
+#mikuModel { position:absolute; inset:0; z-index:2; pointer-events:none; }
+#mikuModel canvas { width:100%;height:100%;object-fit:contain; }
+.pet-stage.sprite-character { animation:none !important;transform:none; }
+.pet-stage.sprite-character>.shadow { display:none; }
 .pet-stage.owl-character { animation:none !important; transform:none; }
 .pet-stage.owl-character>.shadow { display:none; }
 .interaction-effect { position:absolute; left:47%; top:61%; z-index:4; pointer-events:none; }

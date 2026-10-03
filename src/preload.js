@@ -16,6 +16,7 @@ contextBridge.exposeInMainWorld('workFeiBi', {
   saveSettings: (settings) => ipcRenderer.invoke('save-settings', settings),
   taskAction: (action, input) => ipcRenderer.invoke('task-action', action, input),
   exportRecords: format => ipcRenderer.invoke('export-records', format),
+  gameAction: (action, targetId) => ipcRenderer.invoke('game-action', action, targetId),
   getVoice: character => ipcRenderer.invoke('get-voice', character),
   importVoice: () => ipcRenderer.invoke('import-voice'),
 });

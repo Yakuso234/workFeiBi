@@ -1,6 +1,6 @@
-const fields = ['studyMinutes', 'restMinutes', 'angryAfterSeconds', 'petScale', 'soundEnabled', 'idleMotion', 'outfit', 'volume', 'dailyGoal', 'character', 'idleFrequency', 'focusQuiet', 'reducedMotion', 'impactEnabled', 'interactionSounds'];
-const stringFields = new Set(['character', 'idleFrequency']);
-const settingDefaults = {idleFrequency:'normal',focusQuiet:true,reducedMotion:false,impactEnabled:true,interactionSounds:false};
+const fields = ['studyMinutes', 'restMinutes', 'angryAfterSeconds', 'petScale', 'soundEnabled', 'idleMotion', 'outfit', 'volume', 'dailyGoal', 'character', 'idleFrequency', 'focusQuiet', 'reducedMotion', 'impactEnabled', 'interactionSounds', 'owlPalette', 'owlAccessory'];
+const stringFields = new Set(['character', 'idleFrequency', 'owlPalette', 'owlAccessory']);
+const settingDefaults = {idleFrequency:'normal',focusQuiet:true,reducedMotion:false,impactEnabled:true,interactionSounds:false,owlPalette:'classic',owlAccessory:'none'};
 const motionNames = {blink:'眨眨眼',wave:'挥挥手',kick:'踢踢脚',stretch:'伸懒腰',look:'摇摇头',sleep:'打个盹',turn:'转身看看',angry:'生气敲屏'};
 let currentState;
 let journalSignature='';
@@ -22,9 +22,10 @@ function renderPortrait(settings) {
       owlPortrait = window.ClockworkOwl.create(owlContainer);
       owlPortrait.setPose('idle', true);
     }
+    owlPortrait.setAppearance({palette:settings.owlPalette,accessory:settings.owlAccessory});
     return;
   }
-  const portrait = settings.character === 'nuonuo' ? '../assets/images/nuonuo_front.png' : `../assets/images/phoebe_${settings.outfit}.png`;
+  const portrait = window.PetCharacters.get(settings.character).portrait || (settings.character === 'nuonuo' ? '../assets/images/nuonuo_front.png' : `../assets/images/phoebe_${settings.outfit}.png`);
   preview.alt = characterName(settings.character);
   if (preview.getAttribute('src') !== portrait) preview.src = portrait;
 }
@@ -41,15 +42,20 @@ function render(state, fillForm = false) {
   const name = characterName(settings.character);
   document.documentElement.dataset.reducedMotion=String(Boolean(settings.reducedMotion));
   document.getElementById('bond').textContent = `本次互动 ${state.companion?.count || 0} 次`;
-  document.getElementById('companionStatus').textContent = (state.companion?.message || '我在这里陪你。').replaceAll('啾比', settings.character === 'nuonuo' ? '糯糯' : settings.character === 'owl' ? '小鸮' : '啾比');
+  document.getElementById('companionStatus').textContent = (state.companion?.message || '我在这里陪你。').replaceAll('啾比', window.PetCharacters.get(settings.character).nickname);
   renderCompanion(state.companion);
   renderPortrait(settings);
-  const voiceSource = state.voices?.[settings.character] ? '已导入的本机音效' : settings.character === 'owl' ? '原创合成电子铃音' : settings.character === 'nuonuo' ? (state.voices?.localNuonuo ? '本机糯糯短音效' : '本机中文语音 / 合成提示音') : '菲比角色音效 / 本机中文语音';
+  const voiceSource = state.voices?.[settings.character] ? '已导入的本机音效' : ['owl','miku'].includes(settings.character) ? '合成电子铃音' : settings.character === 'nuonuo' ? (state.voices?.localNuonuo ? '本机糯糯短音效' : '本机中文语音 / 合成提示音') : '菲比角色音效 / 本机中文语音';
   document.getElementById('characterNote').textContent=`${name} ONLINE · ${voiceSource}`;
   document.getElementById('voiceSource').textContent=`当前已保存角色：${name} · ${voiceSource}。切换角色后请先保存，再试听或导入。`;
   document.getElementById('labCharacter').textContent=name;
   document.getElementById('importVoice').textContent=`导入${name}音效`;
-  document.getElementById('turnButton').hidden=false;
+  const supportsBack=window.PetCharacters.get(settings.character).supportsBack;
+  document.getElementById('turnButton').hidden=!supportsBack;
+  document.querySelector('[data-motion="turn"]').hidden=!supportsBack;
+  for(const [action,text] of Object.entries({wave:settings.character==='miku'?'挠挠头':'挥挥手',kick:settings.character==='miku'?'开心跳跳':'踢踢脚',stretch:settings.character==='miku'?'起身伸展':'伸懒腰'})){
+    document.querySelector(`[data-motion="${action}"] strong`).textContent=text;
+  }
   document.getElementById('phase').textContent = timer.reminding ? '等待确认' : (timer.phase === 'study' ? '学习阶段' : '休息阶段');
   document.getElementById('time').textContent = formatTime(timer.remaining);
   document.getElementById('toggle').textContent = timer.reminding ? '确认并继续' : timer.running ? '暂停' : (timer.phase === 'study' ? '开始专注' : '开始休息');
@@ -62,6 +68,7 @@ function render(state, fillForm = false) {
   document.getElementById('goalProgress').textContent=`${today.rounds} / ${settings.dailyGoal}`;
   document.getElementById('goalMessage').textContent=today.rounds>=settings.dailyGoal?'目标达成，做得很好！':'从一轮开始';
   renderJournal(state.journal);
+  window.PetLounge.render(state);
   if (fillForm) {
     for (const id of fields) {
       const input = document.getElementById(id);
@@ -128,6 +135,7 @@ document.getElementById('taskForm').addEventListener('submit',async event=>{
   event.preventDefault();const input=document.getElementById('taskText');if(await changeTask('add',input.value))input.value='';
 });
 document.querySelectorAll('[data-tab]').forEach(button=>button.addEventListener('click',()=>{
+  if(button.dataset.tab!=='arcade')window.PetLounge.leaveGame();
   document.querySelectorAll('.tab-panel').forEach(panel=>panel.hidden=panel.id!==button.dataset.tab);
   document.querySelectorAll('[data-tab]').forEach(tab=>tab.setAttribute('aria-pressed',String(tab===button)));
 }));

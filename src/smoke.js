@@ -235,6 +235,7 @@ module.exports=async(pet,getSettings,openSettings,action,state,timer,context)=>{
    const durations=await pet.webContents.executeJavaScript(`Promise.all([1,2,3].map(n=>new Promise((resolve,reject)=>{const a=new Audio('../local-media/nuonuo/nuonuo-'+n+'.wav');a.onloadedmetadata=()=>resolve(a.duration);a.onerror=()=>reject(new Error('nuonuo-'+n));})))`);
    assert.ok(durations.every(seconds=>seconds>.5&&seconds<2));
  }
+ await require('./smoke-v14')({pet,w,action,state,timer,context,waitFor,capture});
  assert.equal(errors.length,0,errors.join('\n'));
- console.log('SMOKE PASS: windows, three characters, vector hit-test, independent owl joints/eyes/back/reduced motion, pose assets, reminders, journal/tasks, atomic CSV/JSON export/cancel/failure/concurrency, companion persistence, previews, native impact, voice decoding and responsive console');
+ console.log('SMOKE PASS: windows, four characters, Miku actual frames/pixel alpha/static motion, owl joints/eyes/back/wardrobe, reminders, journal/tasks, CSV/JSON export, persistent companion, bounded arcade/replay/cancel/reminder priority, native impact, audio and responsive console');
 };

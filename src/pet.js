@@ -9,6 +9,7 @@ let selectedVoice=0;
 let speechCancel, motionStarted=0, interactionKind='',motionAutomatic=false;
 const behavior=window.PetBehavior,idleBag=new behavior.IdleBag();
 const characters=window.PetCharacters,owlModel=$('owlModel'),owl=window.ClockworkOwl.create(owlModel);
+const mikuModel=$('mikuModel'),miku=window.MikuPet.create(mikuModel);
 const faceCanvas=$('faceOverlay'),faceCtx=faceCanvas.getContext('2d');
 const mask = document.createElement('canvas');
 mask.width = 500; mask.height = 500;
@@ -21,14 +22,16 @@ function paintMotion() {
   if(!state)return;
   const t=state.timer, s=state.settings;
   const active=t.angry?'angry':dragging?'lifted':Date.now()<motionUntil?motion:s.idleMotion&&!s.reducedMotion&&!behavior.quiet(s,t)?'idle':'';
-  const isOwl=s.character==='owl';
-  const classes=`pet-stage ${active}${isOwl?' owl-character':''}`;
+  const isOwl=s.character==='owl',isMiku=s.character==='miku';
+  const classes=`pet-stage ${active}${isOwl?' owl-character':isMiku?' sprite-character':''}`;
   if(stage.className!==classes)stage.className=classes;
   root.classList.toggle('reduced-motion',Boolean(s.reducedMotion));
   $('emotion').textContent=t.angry?'💢':active==='sleep'?'z Z':active==='happy'?'♡':'';
-  image.hidden=isOwl;faceCanvas.hidden=isOwl;owlModel.hidden=!isOwl;
+  image.hidden=isOwl||isMiku;faceCanvas.hidden=isOwl||isMiku;owlModel.hidden=!isOwl;mikuModel.hidden=!isMiku;
   owl.setPose(isOwl?active:'',s.reducedMotion);
-  if(!isOwl){
+  owl.setAppearance({palette:s.owlPalette,accessory:s.owlAccessory});
+  miku.setVisible(isMiku);miku.setPose(isMiku?active:'',s.reducedMotion);
+  if(!isOwl&&!isMiku){
     const poseName=active==='sleep'?'sleep':active==='turn'?'back':active==='angry'?'angry':'front';
     const limbPose=['wave','kick','stretch'].includes(active);
     const portrait=s.character==='nuonuo'?`../assets/images/nuonuo_${active==='sleep'?'drowsy':limbPose?'wave':poseName}.png`:s.outfit!==1?`../assets/images/phoebe_${s.outfit}.png`:active==='sleep'?'../assets/images/phoebe_sleep.png':active==='angry'?'../assets/images/phoebe_angry.png':active==='turn'?'../assets/images/phoebe_back.png':limbPose?'../assets/images/phoebe_wave.png':`../assets/images/phoebe_${s.outfit}.png`;
@@ -41,7 +44,7 @@ function paintMotion() {
 }
 function paintFace(active){
   faceCtx.clearRect(0,0,500,500);
-  if(state.settings.character==='owl')return;
+  if(['owl','miku'].includes(state.settings.character))return;
   // These masks are fitted to the normal front portraits only. Never paint
   // artificial eyes on the alternate sleep/back/raised-arm illustrations.
   if(active!=='blink'||state.settings.reducedMotion)return;
@@ -118,7 +121,7 @@ async function sound(cue='preview') {
   const request=soundRequest,character=state.settings.character;
   const builtin=async()=>{
     if(request!==soundRequest||!behavior.canSound(state.settings,state.timer))return;
-    if(character==='owl'){chime(request);return;}
+    if(character==='owl'||character==='miku'){chime(request);return;}
     if(character==='nuonuo'){
       if(state.voices?.localNuonuo){
         const clip=1+Math.floor(Math.random()*3),rate=cue==='angry'?1.08:cue==='feed'?1.16:cue==='pat'?1.1:1.04;
@@ -203,6 +206,7 @@ function hitTest(x,y){
   const inside=el=>{const b=el.getBoundingClientRect();return x>=b.left&&x<b.right&&y>=b.top&&y<b.bottom;};
   if(inside($('settingsButton'))||inside($('timerBadge'))||(!$('bubble').classList.contains('hidden')&&inside($('bubble'))))return true;
   if(state?.settings.character==='owl')return owl.hitTest(x,y);
+  if(state?.settings.character==='miku')return miku.hitTest(x,y);
   if(!maskReady)return false;
   const b=image.getBoundingClientRect(), size=Math.min(b.width,b.height);
   const px=Math.floor((x-b.left-(b.width-size)/2)*500/size),py=Math.floor((y-b.top-(b.height-size)/2)*500/size);
@@ -219,8 +223,8 @@ $('timerBadge').onclick=()=>state?.timer.reminding?window.workFeiBi.petClick():w
 $('settingsButton').onclick=()=>window.workFeiBi.openSettings();
 window.workFeiBi.onState(render);
 window.workFeiBi.onPetEvent(e=>{
-  if(e?.type==='interaction'){
-    speech=String(e.text||'').replaceAll('啾比',state?.settings.character==='nuonuo'?'糯糯':state?.settings.character==='owl'?'小鸮':'啾比');speechUntil=Date.now()+4000;
+  if(e?.type==='interaction'||e?.type==='game'){
+    speech=String(e.text||'').replaceAll('啾比',characters.get(state?.settings.character).nickname);speechUntil=Date.now()+4000;
     interactionKind=['pat','feed'].includes(e.sound)?e.sound:'';
     pose(e.motion,behavior.duration(e.motion,e.duration));
     if(state?.settings.interactionSounds&&e.sound)sound(e.sound);
