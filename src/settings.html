@@ -11,7 +11,7 @@
 </head>
 <body>
   <main>
-    <div class="system-bar"><span>NC // PERSONAL LINK</span><span>V1.4 · ● LOCAL ONLY</span></div>
+    <div class="system-bar"><span>NC // PERSONAL LINK</span><span>V1.4.1 · ● LOCAL ONLY</span></div>
     <header><div><small>FOCUS PROTOCOL / 2077</small><h1>workFeiBi<span>_</span></h1><p>夜之城 · 专注陪伴终端</p><b class="tag">EDGERUNNER MODE</b></div><img id="portrait" src="../assets/images/phoebe_1.png" alt="菲比啾比" /><div id="owlPortrait" hidden></div></header>
     <p id="storageWarning" class="warning" role="alert" hidden></p>
     <nav class="tabs" aria-label="终端页面"><button data-tab="dashboard" aria-controls="dashboard" aria-pressed="true">01 / 专注舱</button><button data-tab="journal" aria-controls="journal" aria-pressed="false">02 / 任务档案</button><button data-tab="config" aria-controls="config" aria-pressed="false">03 / 参数配置</button><button data-tab="laboratory" aria-controls="laboratory" aria-pressed="false">04 / 动作实验室</button><button data-tab="collection" aria-controls="collection" aria-pressed="false">05 / 角色收藏</button><button data-tab="arcade" aria-controls="arcade" aria-pressed="false">06 / 休息街机</button></nav>
@@ -22,13 +22,14 @@
       <span id="phase">准备学习</span>
       <strong id="time">25:00</strong>
       <progress id="sessionProgress" max="100" value="0" aria-label="本轮进度"></progress>
+      <p id="breakCadence" class="note cadence-note"></p>
       <div class="actions"><button id="toggle" class="primary">开始专注</button><button id="skip">跳过</button><button id="reset">重置</button></div>
     </section>
     <section class="companion-card">
       <div class="section-label">02 / COMPANION LINK <span id="bond">本次互动 0 次</span></div>
       <p id="companionStatus" role="status">菲比正在陪你。今天也一起认真一点点。</p>
       <div class="actions"><button data-interact="pat">♡ 摸摸头</button><button data-interact="feed">◇ 喂点心</button><button data-interact="stretch">↗ 伸懒腰</button></div>
-      <div class="extra-actions"><button data-interact="sleep">☾ 打个盹</button><button data-interact="turn" id="turnButton" hidden>↻ 转身看看</button></div>
+      <div class="extra-actions"><button data-interact="sleep">☾ 打个盹</button><button data-interact="turn" id="turnButton" hidden>↻ 转身看看</button><button data-interact="cheer">✦ 给我加油</button></div>
       <p class="pending" id="characterNote">角色信号：菲比啾比 ONLINE</p>
     </section>
     <section class="companion-growth">
@@ -59,6 +60,11 @@
     <h2 class="section-label">03 / PROTOCOL SETTINGS</h2>
     <div class="preset-row" aria-label="计时预设"><span>学习 / 休息预设</span><button data-preset="25/5">25 / 5 分钟</button><button data-preset="50/10">50 / 10 分钟</button><button data-preset="90/15">90 / 15 分钟</button></div>
     <p id="presetStatus" class="note" role="status">选择预设后点击保存；当前轮次继续原来的计时。</p>
+    <section class="long-break-settings">
+      <label class="long-break-switch"><input id="longBreakEnabled" type="checkbox" /> 开启周期性长休息</label>
+      <div class="settings-grid"><label>每完成几轮专注<input id="longBreakEvery" type="number" min="2" max="12" /></label><label>长休息（分钟）<input id="longBreakMinutes" type="number" min="1" max="120" /></label></div>
+      <p class="note">默认关闭。开启后按累计完整专注轮数安排长休息，跳过不算完成；手动跳过进入的休息仍为短休息。已开始的轮次不被修改打断。</p>
+    </section>
     <section class="settings-grid">
       <label>学习时长（分钟）<input id="studyMinutes" type="number" min="1" max="240" /></label>
       <label>休息时长（分钟）<input id="restMinutes" type="number" min="1" max="120" /></label>
@@ -103,7 +109,7 @@
       <section class="companion-card arcade-card">
         <h2 class="section-label">06 / STAR CATCHER <span>45 SEC · LOCAL ARCADE</span></h2>
         <h2 class="lab-title">一起接住小星星。</h2>
-        <p class="note">休息阶段或暂停学习时可以玩。点亮星星，桌宠会在一旁为你加油；最多 45 秒，到期提醒立即优先。也可以用 Tab 选中星星，再按空格或 Enter。</p>
+        <p class="note">休息阶段或暂停学习时可以玩。点亮星星，桌宠会在一旁为你加油；最多 45 秒，到期提醒立即优先。也可以用 Tab 选中星星，再按空格或 Enter；Esc 随时结束。</p>
         <div class="arcade-stats"><span>这局 <strong id="gameScore">0</strong></span><span>纪录 <strong id="gameBest">0</strong></span><span>剩余 <strong id="gameTime">45</strong>s</span></div>
         <progress id="gameProgress" value="45000" max="45000" aria-label="小游戏剩余时间"></progress>
         <div id="starField" class="star-field">

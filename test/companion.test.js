@@ -44,3 +44,13 @@ test('摸头和打盹反馈不同，拒绝的互动不增加成长',()=>{
   assert.notEqual(pat.motion,sleep.motion);assert.notEqual(pat.sound,sleep.sound);
   assert.ok(sleep.duration>pat.duration);assert.equal(pet.energy,92);
 });
+test('加油互动轮换小句子，使用同一冷却且不会增加完成轮数',()=>{
+ const pet=new Companion(),texts=[];
+ for(let n=0;n<6;n++){
+  const event=pet.interact('cheer',false,n*2500);texts.push(event.text);
+  assert.equal(event.motion,'happy');assert.equal(event.duration,3800);assert.equal(event.text,pet.snapshot().message);
+ }
+ assert.equal(new Set(texts).size,6);assert.equal(pet.completedRounds,0);assert.equal(pet.totalInteractions,6);
+ const before=pet.serialize();assert.equal(pet.interact('cheer',false,12501),null);assert.deepEqual(pet.serialize(),before);
+ assert.equal(pet.interact('cheer',true,15000),null);assert.deepEqual(pet.serialize(),before);
+});

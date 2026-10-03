@@ -152,11 +152,12 @@ function render(next) {
   if((before?.timer.reminding&&!t.reminding)||!behavior.canSound(s,t)||characterChanged||before?.voices?.revision!==state.voices?.revision)stopAudio();
   if(before&&(before.settings.idleFrequency!==s.idleFrequency||before.settings.idleMotion!==s.idleMotion||before.settings.focusQuiet!==s.focusQuiet||before.settings.reducedMotion!==s.reducedMotion))scheduleIdle();
   if(audio)audio.volume=s.volume/100;
-  $('timerBadge').textContent=t.reminding?'点我确认':`${t.running?(t.phase==='study'?'专注 ':'休息 '):'待开始 '}${format(t.remaining)}`;
+  $('timerBadge').textContent=t.reminding?'点我确认':`${t.running?(t.phase==='study'?'专注 ':t.breakKind==='long'?'长休息 ':'休息 '):'待开始 '}${format(t.remaining)}`;
   $('bubble').classList.toggle('hidden',!t.reminding);
   const name=characters.name(s.character);
   root.title=`拖动${name}；单击摸头；双击设置；右键菜单`;
-  $('bubbleTitle').textContent=t.angry?`${name}生气了！`:t.phase==='study'?'该休息啦':'回来学习啦';
+  const nextLongBreak=s.longBreakEnabled&&t.rounds>0&&t.rounds%s.longBreakEvery===0;
+  $('bubbleTitle').textContent=t.angry?`${name}生气了！`:t.phase==='study'?(nextLongBreak?'该长休息啦':'该休息啦'):'回来学习啦';
   $('bubbleText').textContent=t.angry?'哼！':format(t.reminderElapsed);
   $('bubbleHint').textContent=t.angry?'已经等你好久了，点我确认～':'点桌宠或气泡，开始下一阶段';
   if(!t.reminding&&Date.now()<speechUntil){
@@ -223,9 +224,9 @@ $('timerBadge').onclick=()=>state?.timer.reminding?window.workFeiBi.petClick():w
 $('settingsButton').onclick=()=>window.workFeiBi.openSettings();
 window.workFeiBi.onState(render);
 window.workFeiBi.onPetEvent(e=>{
-  if(e?.type==='interaction'||e?.type==='game'){
+  if(['interaction','game','celebration'].includes(e?.type)){
     speech=String(e.text||'').replaceAll('啾比',characters.get(state?.settings.character).nickname);speechUntil=Date.now()+4000;
-    interactionKind=['pat','feed'].includes(e.sound)?e.sound:'';
+    const effect=e.effect||e.sound;interactionKind=['pat','feed'].includes(effect)?effect:'';
     pose(e.motion,behavior.duration(e.motion,e.duration));
     if(state?.settings.interactionSounds&&e.sound)sound(e.sound);
     if(state)render(state);return;

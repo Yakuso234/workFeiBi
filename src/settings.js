@@ -1,6 +1,6 @@
-const fields = ['studyMinutes', 'restMinutes', 'angryAfterSeconds', 'petScale', 'soundEnabled', 'idleMotion', 'outfit', 'volume', 'dailyGoal', 'character', 'idleFrequency', 'focusQuiet', 'reducedMotion', 'impactEnabled', 'interactionSounds', 'owlPalette', 'owlAccessory'];
+const fields = ['studyMinutes', 'restMinutes', 'angryAfterSeconds', 'petScale', 'soundEnabled', 'idleMotion', 'outfit', 'volume', 'dailyGoal', 'character', 'idleFrequency', 'focusQuiet', 'reducedMotion', 'impactEnabled', 'interactionSounds', 'owlPalette', 'owlAccessory', 'longBreakEnabled', 'longBreakEvery', 'longBreakMinutes'];
 const stringFields = new Set(['character', 'idleFrequency', 'owlPalette', 'owlAccessory']);
-const settingDefaults = {idleFrequency:'normal',focusQuiet:true,reducedMotion:false,impactEnabled:true,interactionSounds:false,owlPalette:'classic',owlAccessory:'none'};
+const settingDefaults = {idleFrequency:'normal',focusQuiet:true,reducedMotion:false,impactEnabled:true,interactionSounds:false,owlPalette:'classic',owlAccessory:'none',longBreakEnabled:false,longBreakEvery:4,longBreakMinutes:15};
 const motionNames = {blink:'眨眨眼',wave:'挥挥手',kick:'踢踢脚',stretch:'伸懒腰',look:'摇摇头',sleep:'打个盹',turn:'转身看看',angry:'生气敲屏'};
 let currentState;
 let journalSignature='';
@@ -56,9 +56,12 @@ function render(state, fillForm = false) {
   for(const [action,text] of Object.entries({wave:settings.character==='miku'?'挠挠头':'挥挥手',kick:settings.character==='miku'?'开心跳跳':'踢踢脚',stretch:settings.character==='miku'?'起身伸展':'伸懒腰'})){
     document.querySelector(`[data-motion="${action}"] strong`).textContent=text;
   }
-  document.getElementById('phase').textContent = timer.reminding ? '等待确认' : (timer.phase === 'study' ? '学习阶段' : '休息阶段');
+  document.getElementById('phase').textContent = timer.reminding ? '等待确认' : (timer.phase === 'study' ? '学习阶段' : timer.breakKind==='long'?'长休息阶段':'休息阶段');
   document.getElementById('time').textContent = formatTime(timer.remaining);
-  document.getElementById('toggle').textContent = timer.reminding ? '确认并继续' : timer.running ? '暂停' : (timer.phase === 'study' ? '开始专注' : '开始休息');
+  document.getElementById('toggle').textContent = timer.reminding ? '确认并继续' : timer.running ? '暂停' : (timer.phase === 'study' ? '开始专注' : timer.breakKind==='long'?'开始长休息':'开始休息');
+  const cadence=document.getElementById('breakCadence');
+  cadence.textContent=settings.longBreakEnabled?`每完成 ${settings.longBreakEvery} 轮专注，安排 ${settings.longBreakMinutes} 分钟长休息；跳过不计。当前已完成 ${timer.rounds} 轮。`:'当前节奏：学习 → 短休息。可在参数配置开启周期性长休息。';
+  if(timer.phase==='rest'&&timer.breakKind==='long')cadence.textContent=`这一轮是 ${Math.round(timer.sessionSeconds/60)} 分钟长休息，放松一下吧。设置修改在下一轮或重置后生效。`;
   document.getElementById('rounds').textContent = `累计完成 ${timer.rounds} 轮专注 · 数据仅存本机`;
   document.getElementById('sessionProgress').value = Math.min(100,Math.max(0,(1-timer.remaining/timer.sessionSeconds)*100));
   const warning=document.getElementById('storageWarning');warning.hidden=!state.storageWarning;warning.textContent=state.storageWarning||'';

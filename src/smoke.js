@@ -236,6 +236,7 @@ module.exports=async(pet,getSettings,openSettings,action,state,timer,context)=>{
    assert.ok(durations.every(seconds=>seconds>.5&&seconds<2));
  }
  await require('./smoke-v14')({pet,w,action,state,timer,context,waitFor,capture});
+ await require('./smoke-cadence')({pet,w,action,state,timer,context,waitFor,capture});
  assert.equal(errors.length,0,errors.join('\n'));
- console.log('SMOKE PASS: windows, four characters, Miku actual frames/pixel alpha/static motion, owl joints/eyes/back/wardrobe, reminders, journal/tasks, CSV/JSON export, persistent companion, bounded arcade/replay/cancel/reminder priority, native impact, audio and responsive console');
+ console.log('SMOKE PASS: four characters/real Miku frames/alpha, owl wardrobe/joints, reminders/long-break cadence/paused recovery, task celebrations/encouragement/deadline priority, CSV/JSON export, persistent companion, bounded arcade/cancel/Esc, native impact, audio and responsive console');
 };

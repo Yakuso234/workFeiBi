@@ -125,7 +125,7 @@ function menu(){return Menu.buildFromTemplate([
   {label:timer.reminding?'确认提醒，进入下一轮':timer.running?'暂停计时':'开始 / 继续计时',click:()=>action('toggle')},
   {label:'重置本轮',click:()=>action('reset')},{label:'跳过本轮',click:()=>action('skip')},
   {type:'separator'},{label:'♡ 摸摸头',click:()=>action('interact:pat')},{label:'◇ 喂点心',click:()=>action('interact:feed')},{label:'↗ 一起伸懒腰',click:()=>action('interact:stretch')},
-  {label:'☾ 打个盹',click:()=>action('interact:sleep')},{label:'↻ 转身看看',enabled:characters.get(timer.settings.character).supportsBack,click:()=>action('interact:turn')},
+  {label:'☾ 打个盹',click:()=>action('interact:sleep')},{label:'↻ 转身看看',enabled:characters.get(timer.settings.character).supportsBack,click:()=>action('interact:turn')},{label:'✦ 给我加油',click:()=>action('interact:cheer')},
   {type:'separator'},{label:'隐藏桌宠（托盘可恢复）',click:hidePet},{label:'退出 workFeiBi',click:()=>app.quit()},
 ]);}
 function endDrag(){
@@ -182,7 +182,12 @@ handle('task-action',(action,input)=>{
   const previous=JSON.parse(JSON.stringify(journal.serialize()));
   journal.task(action,input);
   try{persist(true);}catch(error){journal=new Journal(previous);throw error;}
-  broadcast();return state();
+  const dueEvent=timer.update();recordCompletion();const gameEvent=advanceGame();
+  if(dueEvent||gameEvent)persist();
+  const finished=action==='toggle'&&previous.tasks.some(task=>task.id===input&&!task.done)&&journal.tasks.some(task=>task.id===input&&task.done);
+  if(finished&&!timer.reminding){showPet();broadcast(gameEvent||{type:'celebration',motion:'happy',effect:'pat',duration:3200,text:'一件小事完成啦！啾比给你比个小爱心。'});}
+  else broadcast(dueEvent||gameEvent);
+  return state();
 });
 handle('export-records',async format=>{
   if(!settingsWindow||settingsWindow.isDestroyed())throw new Error('请从任务档案导出记录');

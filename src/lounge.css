@@ -26,3 +26,8 @@
 @media(max-width:560px){.tabs{grid-template-columns:repeat(2,minmax(0,1fr))}.character-cards{gap:10px}.character-card{padding:12px}.character-card .character-art{height:135px}.owl-wardrobe{grid-template-columns:1fr}.arcade-stats{gap:6px}.arcade-stats strong{font-size:24px;margin-left:3px}.star-field{height:245px}}
 @media(max-width:380px){.character-cards{grid-template-columns:1fr}}
 html[data-reduced-motion=true] .game-target:active{transform:translate(-50%,-50%)}
+.long-break-settings{border:1px solid #455238;border-left:3px solid var(--yellow);padding:14px;margin:12px 0;background:#181f20}
+.long-break-switch{display:block;margin-bottom:12px;font-size:13px;color:var(--yellow)}
+.long-break-settings .settings-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.long-break-settings .note{margin-bottom:0}.cadence-note{margin-top:-5px;margin-bottom:15px;font-size:10px;line-height:1.7;text-align:left}
+.extra-actions{flex-wrap:wrap}

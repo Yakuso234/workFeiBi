@@ -5,7 +5,16 @@ const responses = {
   stretch: {motion:'stretch', duration:3600, sound:'stretch', text:'一起伸个懒腰，放松肩膀，再看看远处～'},
   sleep: {motion:'sleep', duration:8000, sound:'sleep', text:'闭眼休息一下，我就在你旁边。'},
   turn: {motion:'turn', duration:3000, sound:'turn', text:'转个身，马上回来陪你。'},
+  cheer: {motion:'happy', duration:3800, sound:'pat', text:'啾比给你加油！从眼前的一小步开始吧。'},
 };
+const encouragements=Object.freeze([
+  '不用一下做到完美，啾比陪你从一小步开始。',
+  '已经认真努力啦！先完成眼前这一件小事。',
+  '卡住也没关系，我们慢慢拆开它，一点点来。',
+  '今天的你也值得鼓励，啾比给你比个小爱心！',
+  '专心一会儿，再好好休息。啾比一直在旁边。',
+  '比起急着做很多，我们一起把这一小段做好。'
+]);
 const bounded=(value,fallback,max=100)=>typeof value==='number'&&Number.isFinite(value)?Math.max(0,Math.min(max,Math.floor(value))):fallback;
 class Companion {
   constructor(saved={}){
@@ -30,11 +39,11 @@ class Companion {
     if(!Object.hasOwn(responses,kind))return null;
     if(reminding){this.message='先确认学习或休息提醒，再来玩吧。';return null;}
     if(now-this.last<2500){this.message='慢一点啦，啾比还没反应过来呢。';return null;}
-    this.last=now;this.count++;this.totalInteractions=Math.min(1000000,this.totalInteractions+1);this.message=responses[kind].text;
+    this.last=now;this.count++;this.totalInteractions=Math.min(1000000,this.totalInteractions+1);this.message=kind==='cheer'?`加油！${encouragements[(this.totalInteractions-1)%encouragements.length]}`:responses[kind].text;
     this.bond=Math.min(100,this.bond+1);
     this.mood=Math.min(100,this.mood+(kind==='pat'?6:kind==='feed'?4:2));
     this.energy=Math.min(100,Math.max(0,this.energy+(kind==='sleep'?12:kind==='feed'?8:kind==='stretch'?3:0)));
-    return {type:'interaction',...responses[kind]};
+    return {type:'interaction',...responses[kind],text:this.message};
   }
 }
 module.exports={Companion};

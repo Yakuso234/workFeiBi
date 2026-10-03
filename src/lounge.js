@@ -62,7 +62,9 @@
       $('gameStatus').textContent=g.result.kind==='complete'?`接到了 ${g.result.score} 颗星星${g.result.newBest?'，刷新纪录！':'，做得好！'}再看看远处，休息一下吧。`:(reasons[g.result.reason]||'这局已结束，未计入成绩。');
     }else $('gameStatus').textContent='准备好了吗？接一点星星，换个轻松的节奏。';
   }
+  function cancelGame(action){viewEpoch++;void scope.workFeiBi.gameAction(action).then(scope.render).catch(()=>{});}
   createCards();
-  $('gameStart').onclick=()=>gameAction('start');$('gameCancel').onclick=()=>gameAction('cancel');$('gameTarget').onclick=()=>gameAction('hit',$('gameTarget').dataset.targetId);
-  scope.PetLounge=Object.freeze({render(next){state=next;renderCards();renderGame();},leaveGame(){viewEpoch++;void scope.workFeiBi.gameAction('leave').then(scope.render).catch(()=>{});}});
+  $('gameStart').onclick=()=>gameAction('start');$('gameCancel').onclick=()=>cancelGame('cancel');$('gameTarget').onclick=()=>gameAction('hit',$('gameTarget').dataset.targetId);
+  document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!$('arcade').hidden&&(busy||state?.game.active)){event.preventDefault();cancelGame('cancel');}});
+  scope.PetLounge=Object.freeze({render(next){state=next;renderCards();renderGame();},leaveGame(){cancelGame('leave');}});
 })(window);
