@@ -90,6 +90,54 @@ module.exports=async(pet,getSettings,openSettings,action,state,timer,context)=>{
  await w.webContents.executeJavaScript(`document.querySelector('[data-tab="journal"]').click();new Promise(requestAnimationFrame)`);
  assert.equal(await w.webContents.executeJavaScript(`document.querySelector('#taskList b')===null`),true);
  await capture(w,'journal.png');
+ // Export uses native user choice, not renderer-supplied filesystem paths.
+ const {dialog}=require('electron'),savePicker=dialog.showSaveDialog;
+ const recordsBefore=JSON.stringify({timer:state().timer,journal:state().journal,companion:state().companion});
+ let saveCalls=0;
+ try{
+   dialog.showSaveDialog=async()=>{saveCalls++;return {canceled:true};};
+   assert.equal((await w.webContents.executeJavaScript(`window.workFeiBi.exportRecords('csv')`)).canceled,true);
+   assert.equal(await w.webContents.executeJavaScript(`window.workFeiBi.exportRecords('../wrong').then(()=>false,()=>true)`),true);
+   assert.equal(saveCalls,1);
+   for(const format of ['csv','json']){
+     const destination=path.join(out,`records.${format}`);
+     dialog.showSaveDialog=async(_parent,options)=>{assert.deepEqual(options.filters[0].extensions,[format]);return {canceled:false,filePath:destination};};
+     const exported=await w.webContents.executeJavaScript(`window.workFeiBi.exportRecords(${JSON.stringify(format)})`);
+     assert.equal(exported.canceled,false);assert.equal(exported.filename,`records.${format}`);
+     const content=fs.readFileSync(destination,'utf8');
+     if(format==='csv'){assert.equal(content.charCodeAt(0),0xfeff);assert.match(content,/1500/);}
+     else{
+       const data=JSON.parse(content);assert.equal(data.schemaVersion,1);assert.equal(data.dailyRecords.length,1);
+       assert.equal(data.dailyRecords[0].rounds,1);assert.equal(data.dailyRecords[0].focusSeconds,1500);
+       assert.equal(data.tasks[0].text,'读十页书 <b>不会变成 HTML</b>');assert.equal(data.tasks[0].done,true);
+       assert.equal(data.companion.completedRounds,1);
+       assert.equal(Object.hasOwn(data,'voices'),false);assert.equal(Object.hasOwn(data,'position'),false);
+     }
+   }
+   dialog.showSaveDialog=async()=>({canceled:false,filePath:path.join(out,'missing-export-folder','records.json')});
+   assert.equal(await w.webContents.executeJavaScript(`window.workFeiBi.exportRecords('json').then(()=>false,()=>true)`),true);
+   // Failed atomic commit must preserve an existing target and remove the temp.
+   const blocked=path.join(out,'blocked.json');fs.mkdirSync(blocked,{recursive:true});
+   fs.writeFileSync(path.join(blocked,'keep.txt'),'keep existing target');
+   dialog.showSaveDialog=async()=>({canceled:false,filePath:blocked});
+   assert.equal(await w.webContents.executeJavaScript(`window.workFeiBi.exportRecords('json').then(()=>false,()=>true)`),true);
+   assert.equal(fs.readFileSync(path.join(blocked,'keep.txt'),'utf8'),'keep existing target');
+   dialog.showSaveDialog=async()=>({canceled:false,filePath:path.join(out,'no-extension')});
+   assert.equal(await w.webContents.executeJavaScript(`window.workFeiBi.exportRecords('json').then(()=>false,()=>true)`),true);
+   assert.equal(fs.existsSync(path.join(out,'no-extension.json')),false);
+   let finishDialog;
+   dialog.showSaveDialog=()=>new Promise(resolve=>{finishDialog=resolve;});
+   const pending=w.webContents.executeJavaScript(`window.workFeiBi.exportRecords('csv')`);
+   await waitFor(()=>Boolean(finishDialog),'save dialog was not opened');
+   assert.equal(await w.webContents.executeJavaScript(`window.workFeiBi.exportRecords('csv').then(()=>false,()=>true)`),true);
+   finishDialog({canceled:true});assert.equal((await pending).canceled,true);
+   dialog.showSaveDialog=async()=>({canceled:true});
+   await w.webContents.executeJavaScript(`document.querySelector('[data-export="json"]').click()`);
+   await waitFor(()=>w.webContents.executeJavaScript(`!document.querySelector('[data-export="json"]').disabled`),'export UI did not reset');
+   assert.match(await w.webContents.executeJavaScript(`document.getElementById('exportStatus').textContent`),/取消/);
+   assert.equal(fs.readdirSync(out).some(name=>name.endsWith('.tmp')),false);
+ }finally{dialog.showSaveDialog=savePicker;}
+ assert.equal(JSON.stringify({timer:state().timer,journal:state().journal,companion:state().companion}),recordsBefore);
  await w.webContents.executeJavaScript(`window.workFeiBi.taskAction('remove',${JSON.stringify(taskId)})`);
  assert.equal(state().journal.tasks.length,0);
  // Each Nuonuo pose must decode at native high resolution and have real alpha.
@@ -115,7 +163,7 @@ module.exports=async(pet,getSettings,openSettings,action,state,timer,context)=>{
  assert.equal(stored.companion.totalInteractions,state().companion.totalInteractions);
  assert.equal(stored.companion.completedRounds,1);
  // Stub only the file picker; real validation, copying and decoding still run.
- const {dialog}=require('electron'),picker=dialog.showOpenDialog;
+ const picker=dialog.showOpenDialog;
  try{
    dialog.showOpenDialog=async()=>({canceled:false,filePaths:[path.join(__dirname,'../assets/audio/phoebe_chubby_0.mp3')]});
    await w.webContents.executeJavaScript(`window.workFeiBi.importVoice()`);
@@ -140,6 +188,45 @@ module.exports=async(pet,getSettings,openSettings,action,state,timer,context)=>{
  await w.webContents.executeJavaScript(`document.querySelector('[data-tab="dashboard"]').click();new Promise(requestAnimationFrame)`);
  assert.equal(await w.webContents.executeJavaScript('document.documentElement.scrollWidth<=innerWidth'),true);
  await capture(w,'dashboard-compact.png');
+ // Original SVG model: prove local joints change while the stage stays still.
+ await w.webContents.executeJavaScript(`window.workFeiBi.saveSettings({character:'owl',idleMotion:false,reducedMotion:false}).then(s=>render(s,true))`);
+ await waitFor(()=>pet.webContents.executeJavaScript(`state.settings.character==='owl'&&!owlModel.hidden`),'owl did not become visible');
+ assert.equal(await pet.webContents.executeJavaScript(`image.hidden&&faceCanvas.hidden`),true);
+ assert.equal(await pet.webContents.executeJavaScript(`hitTest(1,1)`),false);
+ assert.equal(await pet.webContents.executeJavaScript(`(()=>{const p=new DOMPoint(250,340).matrixTransform(owl.svg.getScreenCTM());return hitTest(p.x,p.y);})()`),true);
+ await capture(pet,'owl.png');
+ const testJoint=async(motion,selector,screenshot)=>{
+   await w.webContents.executeJavaScript(`window.workFeiBi.previewAction(${JSON.stringify(motion)})`);
+   const joint=await pet.webContents.executeJavaScript(`(()=>{const e=owl.svg.querySelector(${JSON.stringify(selector)}),a=e.getAnimations()[0];if(!a)return null;const running=a.playState==='running';a.pause();a.currentTime=60;const first=getComputedStyle(e).transform;a.currentTime=390;const second=getComputedStyle(e).transform;return {running,first,second,stage:getComputedStyle(stage).transform};})()`);
+   assert.ok(joint?.running);assert.notEqual(joint.first,joint.second);assert.equal(joint.stage,'none');
+   await capture(pet,screenshot);
+ };
+ await testJoint('wave','.owl-wing-right','owl-wave.png');
+ assert.equal(await pet.webContents.executeJavaScript(`getComputedStyle(owl.svg.querySelector('.owl-foot-right')).transform`),'none');
+ await testJoint('kick','.owl-foot-right','owl-kick.png');
+ await w.webContents.executeJavaScript(`window.workFeiBi.previewAction('blink')`);
+ const eyelids=await pet.webContents.executeJavaScript(`(()=>{const e=owl.svg.querySelector('.owl-eye-open'),a=e.getAnimations()[0];a.pause();a.currentTime=190;const closed=getComputedStyle(e).opacity;a.currentTime=350;const open=getComputedStyle(e).opacity;return {closed,open};})()`);
+ assert.equal(Number(eyelids.closed),0);assert.equal(Number(eyelids.open),1);
+ await w.webContents.executeJavaScript(`window.workFeiBi.previewAction('turn')`);
+ assert.equal(await pet.webContents.executeJavaScript(`owl.svg.dataset.facing`),'back');
+ assert.equal(await pet.webContents.executeJavaScript(`getComputedStyle(owl.svg.querySelector('.owl-front')).display`),'none');
+ assert.notEqual(await pet.webContents.executeJavaScript(`getComputedStyle(owl.svg.querySelector('.owl-back')).display`),'none');
+ await capture(pet,'owl-back.png');
+ await w.webContents.executeJavaScript(`window.workFeiBi.previewAction('sleep')`);
+ assert.equal(await pet.webContents.executeJavaScript(`getComputedStyle(owl.svg.querySelector('.owl-eye-open')).display`),'none');
+ await capture(pet,'owl-sleep.png');
+ await w.webContents.executeJavaScript(`window.workFeiBi.previewAction('angry')`);
+ assert.notEqual(await pet.webContents.executeJavaScript(`getComputedStyle(owl.svg.querySelector('.owl-brows')).display`),'none');
+ await capture(pet,'owl-angry.png');action('reset');
+ await w.webContents.executeJavaScript(`window.workFeiBi.saveSettings({reducedMotion:true});window.workFeiBi.previewAction('wave')`);
+ assert.equal(await pet.webContents.executeJavaScript(`owl.svg.getAnimations({subtree:true}).length`),0);
+ assert.equal(await pet.webContents.executeJavaScript(`getComputedStyle(owl.svg.querySelector('.owl-wing-right')).transform`),'none');
+ assert.match(await w.webContents.executeJavaScript(`document.getElementById('voiceSource').textContent`),/发条鸮.*电子/);
+ assert.equal(await w.webContents.executeJavaScript(`document.documentElement.scrollWidth<=innerWidth`),true);
+ await capture(w,'owl-console-compact.png');
+ await w.webContents.executeJavaScript(`window.workFeiBi.saveSettings({reducedMotion:false,character:'nuonuo'})`);
+ await pet.webContents.executeJavaScript(`image.decode()`);
+ assert.equal(await pet.webContents.executeJavaScript(`owlModel.hidden&&!image.hidden`),true);
  await w.webContents.executeJavaScript(`window.workFeiBi.saveSettings({character:'phoebe',idleMotion:true})`);
  const media=await pet.webContents.executeJavaScript(`Promise.all(['phoebe_chubby_0.mp3'].map(name=>new Promise((resolve,reject)=>{const a=new Audio('../assets/audio/'+name);a.onloadedmetadata=()=>resolve(a.duration);a.onerror=()=>reject(new Error(name));})))`);
  assert.ok(media.every(n=>n>0));
@@ -149,5 +236,5 @@ module.exports=async(pet,getSettings,openSettings,action,state,timer,context)=>{
    assert.ok(durations.every(seconds=>seconds>.5&&seconds<2));
  }
  assert.equal(errors.length,0,errors.join('\n'));
- console.log('SMOKE PASS: windows, hit-test, both characters, pose assets, settings, reminder/ack, journal, tasks, companion persistence, cooldown, safe action previews, branched native impact/auto-hide/accessibility flags, presets, voice decoding, responsive console and screenshots');
+ console.log('SMOKE PASS: windows, three characters, vector hit-test, independent owl joints/eyes/back/reduced motion, pose assets, reminders, journal/tasks, atomic CSV/JSON export/cancel/failure/concurrency, companion persistence, previews, native impact, voice decoding and responsive console');
 };

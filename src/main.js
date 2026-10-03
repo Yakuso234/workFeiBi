@@ -5,13 +5,16 @@ const {Timer,sanitize}=require('./timer');
 const {Companion}=require('./companion');
 const {Journal}=require('./journal');
 const {Voices}=require('./voices');
+const characters=require('./characters');
+const {createExport}=require('./export');
+const {randomUUID}=require('node:crypto');
 const storage=require('./storage');
 let companion=new Companion();
 const smoke=process.argv.includes('--smoke-test');
 if(smoke)app.setPath('userData',path.join(__dirname,'../.qa-profile'));
 app.setName('workFeiBi');
 let pet,settingsWindow,impactWindow,tray,timer,journal,voices,position,drag,moveLoop,saveDelay,tickLoop,checkpointLoop,impactDelay;
-let quitting=false,storageWarning='',recordedRounds=0,impactReady,impactSequence=0;
+let quitting=false,storageWarning='',recordedRounds=0,impactReady,impactSequence=0,exporting=false;
 const localNuonuo=[1,2,3].every(n=>fs.existsSync(path.join(__dirname,`../local-media/nuonuo/nuonuo-${n}.wav`)));
 const previewDurations={blink:900,wave:2800,kick:3200,stretch:3600,look:3000,sleep:8000,turn:3000,angry:3000};
 const configPath=()=>path.join(app.getPath('userData'),'settings.json');
@@ -125,7 +128,7 @@ handle('get-voice',character=>voices.get(character));
 handle('import-voice',async()=>{
   if(!settingsWindow||settingsWindow.isDestroyed())throw new Error('请从设置窗口导入');
   const character=timer.settings.character;
-  const result=await dialog.showOpenDialog(settingsWindow,{title:`导入${character==='nuonuo'?'弗糯糯':'菲比'}音效（仅保存本机）`,properties:['openFile'],filters:[{name:'音频（最大 5 MB）',extensions:['mp3','wav','ogg']}]});
+  const result=await dialog.showOpenDialog(settingsWindow,{title:`导入${characters.name(character)}音效（仅保存本机）`,properties:['openFile'],filters:[{name:'音频（最大 5 MB）',extensions:['mp3','wav','ogg']}]});
   if(result.canceled)return {canceled:true};
   voices.import(character,result.filePaths[0]);broadcast();return {canceled:false,state:state()};
 });
@@ -143,6 +146,31 @@ handle('task-action',(action,input)=>{
   journal.task(action,input);
   try{persist(true);}catch(error){journal=new Journal(previous);throw error;}
   broadcast();return state();
+});
+handle('export-records',async format=>{
+  if(!settingsWindow||settingsWindow.isDestroyed())throw new Error('请从任务档案导出记录');
+  if(exporting)throw new Error('已有导出正在进行');
+  // Only the native dialog supplies a destination; renderer paths are not accepted.
+  const suggested=createExport(format,{journal:journal.serialize(),companion:companion.serialize()});
+  exporting=true;let temporary,ownsTemporary=false;
+  try{
+    const choice=await dialog.showSaveDialog(settingsWindow,{title:'导出学习记录（仅保存本机）',defaultPath:path.join(app.getPath('documents'),suggested.filename),filters:[{name:format==='csv'?'CSV 学习统计':'JSON 学习档案',extensions:[format]}],properties:['createDirectory','showOverwriteConfirmation']});
+    if(choice.canceled||!choice.filePath)return {canceled:true};
+    // Never append an extension after the dialog: that could overwrite a path
+    // different from the one whose replacement the user actually confirmed.
+    const destination=choice.filePath;
+    if(!path.isAbsolute(destination)||path.extname(destination).toLowerCase()!==`.${format}`)throw new Error(`请在保存文件名末尾保留 .${format} 扩展名`);
+    const dueEvent=timer.update();recordCompletion();if(dueEvent){persist();broadcast(dueEvent);}
+    const output=createExport(format,{journal:journal.serialize(),companion:companion.serialize()});
+    temporary=`${destination}.workfeibi-${randomUUID()}.tmp`;
+    const outputFile=await fs.promises.open(temporary,'wx',0o600);ownsTemporary=true;
+    try{await outputFile.writeFile(output.content,'utf8');}finally{await outputFile.close();}
+    await fs.promises.rename(temporary,destination);temporary=null;
+    return {canceled:false,filename:path.basename(destination)};
+  }finally{
+    if(temporary&&ownsTemporary)await fs.promises.unlink(temporary).catch(()=>{});
+    exporting=false;
+  }
 });
 on('pet-click',()=>{if(timer.reminding)action('ack');else action('interact:pat');});
 on('open-settings',openSettings);on('context-menu',()=>menu().popup({window:pet}));

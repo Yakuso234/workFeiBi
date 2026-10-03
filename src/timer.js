@@ -1,3 +1,4 @@
+const characters=require('./characters');
 const defaults = { studyMinutes:25, restMinutes:5, angryAfterSeconds:60, petScale:100, soundEnabled:true, idleMotion:true, outfit:1, volume:60, dailyGoal:4, character:'phoebe', idleFrequency:'normal', focusQuiet:true, reducedMotion:false, impactEnabled:true, interactionSounds:false };
 function sanitize(input = {}) {
   if(!input || typeof input!=='object') input={};
@@ -8,7 +9,7 @@ function sanitize(input = {}) {
   }
   for (const key of ['soundEnabled','idleMotion','focusQuiet','reducedMotion','impactEnabled','interactionSounds']) if(typeof input[key]==='boolean') s[key]=input[key];
   if(['calm','normal','lively'].includes(input.idleFrequency))s.idleFrequency=input.idleFrequency;
-  if(['phoebe','nuonuo'].includes(input.character))s.character=input.character;
+  if(characters.valid(input.character))s.character=input.character;
   return s;
 }
 class Timer {

@@ -12,6 +12,7 @@ test('恢复未确认提醒与角色设置校验',()=>{
  const restored=new Timer(t.settings);restored.restore(t.serialize());
  assert.equal(restored.reminding,true);assert.equal(restored.angry,true);assert.equal(restored.rounds,1);
  assert.equal(sanitize({character:'../bad'}).character,'phoebe');assert.equal(sanitize({character:'nuonuo'}).character,'nuonuo');
+ assert.equal(sanitize({character:'owl'}).character,'owl');assert.equal(sanitize({character:'__proto__'}).character,'phoebe');
 });
 test('完整学习、等待60秒、生气、确认休息与返回学习',()=>{
  const t=new Timer({studyMinutes:1,restMinutes:1});t.toggle(0);

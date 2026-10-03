@@ -8,6 +8,9 @@ test('分角色本地音效导入与重启恢复，阻止路径穿越',()=>{
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),'workfeibi-voice-'));
   try{const source=path.join(dir,'sample.wav');fs.writeFileSync(source,'RIFF1234WAVE1234');const voices=new Voices(path.join(dir,'voices'));
     assert.throws(()=>voices.get('../secret'));voices.import('nuonuo',source);
+    assert.equal(voices.snapshot().owl,false);voices.import('owl',source);
+    assert.equal(voices.snapshot().owl,true);assert.equal(voices.snapshot().phoebe,false);
+    assert.match(new Voices(path.join(dir,'voices')).get('owl'),/^data:audio\/wav/);
     assert.equal(voices.snapshot().nuonuo,true);assert.equal(voices.snapshot().phoebe,false);
     assert.match(new Voices(path.join(dir,'voices')).get('nuonuo'),/^data:audio\/wav/);
   }finally{fs.rmSync(dir,{recursive:true,force:true});}

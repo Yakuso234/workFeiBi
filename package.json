@@ -1,6 +1,6 @@
 {
   "name": "workfeibi",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "private": true,
   "description": "可拖动的菲比啾比学习计时桌宠",
   "main": "src/main.js",

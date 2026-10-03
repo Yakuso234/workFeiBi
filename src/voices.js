@@ -1,5 +1,5 @@
 const fs=require('node:fs');const path=require('node:path');
-const characters=['phoebe','nuonuo'];
+const characters=require('./characters').list.map(character=>character.id);
 function mimeOf(buffer){
   if(buffer.length<12)throw new Error('音频文件太短或已损坏');
   if(buffer.subarray(0,3).toString()==='ID3'||(buffer[0]===255&&(buffer[1]&224)===224))return 'audio/mpeg';
@@ -20,6 +20,6 @@ class Voices{
     this.data[character]=data;this.revision++;return this.snapshot();
   }
   get(character){this.file(character);return this.data[character]||null;}
-  snapshot(){return {phoebe:Boolean(this.data.phoebe),nuonuo:Boolean(this.data.nuonuo),revision:this.revision};}
+  snapshot(){return {...Object.fromEntries(characters.map(character=>[character,Boolean(this.data[character])])),revision:this.revision};}
 }
 module.exports={Voices,mimeOf};

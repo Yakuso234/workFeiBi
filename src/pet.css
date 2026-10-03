@@ -15,6 +15,9 @@ html, body { width:100%; height:100%; margin:0; overflow:hidden; background:tran
 .pet-stage { position:absolute; left:3%; right:3%; bottom:0; height:82%; transform-origin:50% 92%; filter:drop-shadow(0 3px 3px rgba(36,25,64,.18)); }
 .pet-stage img { position:absolute; width:100%; height:100%; object-fit:contain; image-rendering:auto; pointer-events:none; z-index:2; }
 #faceOverlay { position:absolute; width:100%; height:100%; object-fit:contain; pointer-events:none; z-index:3; }
+#owlModel { position:absolute; inset:0; z-index:2; pointer-events:none; }
+.pet-stage.owl-character { animation:none !important; transform:none; }
+.pet-stage.owl-character>.shadow { display:none; }
 .interaction-effect { position:absolute; left:47%; top:61%; z-index:4; pointer-events:none; }
 .interaction-effect.pat { color:#ff87b2; font-size:40px; text-shadow:0 0 3px white; animation:heart-float 1s ease-out infinite; }
 .interaction-effect.feed { width:25px; height:23px; border:2px solid #835233; border-radius:50%; background:radial-gradient(circle at 30% 35%,#704936 0 2px,transparent 3px),radial-gradient(circle at 65% 60%,#704936 0 2px,transparent 3px),#e6b373; box-shadow:0 1px 2px #ffebbe; animation:snack .7s ease-in-out infinite alternate; }

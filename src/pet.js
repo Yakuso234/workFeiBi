@@ -8,6 +8,7 @@ let soundRequest=0;
 let selectedVoice=0;
 let speechCancel, motionStarted=0, interactionKind='',motionAutomatic=false;
 const behavior=window.PetBehavior,idleBag=new behavior.IdleBag();
+const characters=window.PetCharacters,owlModel=$('owlModel'),owl=window.ClockworkOwl.create(owlModel);
 const faceCanvas=$('faceOverlay'),faceCtx=faceCanvas.getContext('2d');
 const mask = document.createElement('canvas');
 mask.width = 500; mask.height = 500;
@@ -20,14 +21,19 @@ function paintMotion() {
   if(!state)return;
   const t=state.timer, s=state.settings;
   const active=t.angry?'angry':dragging?'lifted':Date.now()<motionUntil?motion:s.idleMotion&&!s.reducedMotion&&!behavior.quiet(s,t)?'idle':'';
-  const classes=`pet-stage ${active}`;
+  const isOwl=s.character==='owl';
+  const classes=`pet-stage ${active}${isOwl?' owl-character':''}`;
   if(stage.className!==classes)stage.className=classes;
   root.classList.toggle('reduced-motion',Boolean(s.reducedMotion));
   $('emotion').textContent=t.angry?'💢':active==='sleep'?'z Z':active==='happy'?'♡':'';
-  const poseName=active==='sleep'?'sleep':active==='turn'?'back':active==='angry'?'angry':'front';
-  const limbPose=['wave','kick','stretch'].includes(active);
-  const portrait=s.character==='nuonuo'?`../assets/images/nuonuo_${active==='sleep'?'drowsy':limbPose?'wave':poseName}.png`:s.outfit!==1?`../assets/images/phoebe_${s.outfit}.png`:active==='sleep'?'../assets/images/phoebe_sleep.png':active==='angry'?'../assets/images/phoebe_angry.png':active==='turn'?'../assets/images/phoebe_back.png':limbPose?'../assets/images/phoebe_wave.png':`../assets/images/phoebe_${s.outfit}.png`;
-  if(image.getAttribute('src')!==portrait){maskReady=false;image.src=portrait;}
+  image.hidden=isOwl;faceCanvas.hidden=isOwl;owlModel.hidden=!isOwl;
+  owl.setPose(isOwl?active:'',s.reducedMotion);
+  if(!isOwl){
+    const poseName=active==='sleep'?'sleep':active==='turn'?'back':active==='angry'?'angry':'front';
+    const limbPose=['wave','kick','stretch'].includes(active);
+    const portrait=s.character==='nuonuo'?`../assets/images/nuonuo_${active==='sleep'?'drowsy':limbPose?'wave':poseName}.png`:s.outfit!==1?`../assets/images/phoebe_${s.outfit}.png`:active==='sleep'?'../assets/images/phoebe_sleep.png':active==='angry'?'../assets/images/phoebe_angry.png':active==='turn'?'../assets/images/phoebe_back.png':limbPose?'../assets/images/phoebe_wave.png':`../assets/images/phoebe_${s.outfit}.png`;
+    if(image.getAttribute('src')!==portrait){maskReady=false;image.src=portrait;}
+  }
   const effect=Date.now()<motionUntil&&!t.angry?interactionKind:'';
   $('interactionEffect').className=`interaction-effect ${effect}`;
   $('interactionEffect').textContent=effect==='pat'?'♡':'';
@@ -35,6 +41,7 @@ function paintMotion() {
 }
 function paintFace(active){
   faceCtx.clearRect(0,0,500,500);
+  if(state.settings.character==='owl')return;
   // These masks are fitted to the normal front portraits only. Never paint
   // artificial eyes on the alternate sleep/back/raised-arm illustrations.
   if(active!=='blink'||state.settings.reducedMotion)return;
@@ -111,6 +118,7 @@ async function sound(cue='preview') {
   const request=soundRequest,character=state.settings.character;
   const builtin=async()=>{
     if(request!==soundRequest||!behavior.canSound(state.settings,state.timer))return;
+    if(character==='owl'){chime(request);return;}
     if(character==='nuonuo'){
       if(state.voices?.localNuonuo){
         const clip=1+Math.floor(Math.random()*3),rate=cue==='angry'?1.08:cue==='feed'?1.16:cue==='pat'?1.1:1.04;
@@ -136,14 +144,15 @@ function render(next) {
   state=next;
   const {timer:t,settings:s}=state;
   const characterChanged=before&&before.settings.character!==s.character;
-  if(characterChanged){motion='';motionUntil=0;speech='';speechUntil=0;interactionKind='';}
+  if(characterChanged){motion='';motionUntil=0;motionAutomatic=false;speech='';speechUntil=0;interactionKind='';maskReady=false;if(s.character!=='owl'&&image.complete&&image.naturalWidth)image.onload();}
   if(motionAutomatic&&(!s.idleMotion||s.reducedMotion||t.reminding||behavior.quiet(s,t)&&motion!=='blink')){motion='';motionUntil=0;}
   if((before?.timer.reminding&&!t.reminding)||!behavior.canSound(s,t)||characterChanged||before?.voices?.revision!==state.voices?.revision)stopAudio();
   if(before&&(before.settings.idleFrequency!==s.idleFrequency||before.settings.idleMotion!==s.idleMotion||before.settings.focusQuiet!==s.focusQuiet||before.settings.reducedMotion!==s.reducedMotion))scheduleIdle();
   if(audio)audio.volume=s.volume/100;
   $('timerBadge').textContent=t.reminding?'点我确认':`${t.running?(t.phase==='study'?'专注 ':'休息 '):'待开始 '}${format(t.remaining)}`;
   $('bubble').classList.toggle('hidden',!t.reminding);
-  const name=s.character==='nuonuo'?'弗糯糯':'菲比啾比';
+  const name=characters.name(s.character);
+  root.title=`拖动${name}；单击摸头；双击设置；右键菜单`;
   $('bubbleTitle').textContent=t.angry?`${name}生气了！`:t.phase==='study'?'该休息啦':'回来学习啦';
   $('bubbleText').textContent=t.angry?'哼！':format(t.reminderElapsed);
   $('bubbleHint').textContent=t.angry?'已经等你好久了，点我确认～':'点桌宠或气泡，开始下一阶段';
@@ -193,6 +202,7 @@ if(image.complete&&image.naturalWidth)image.onload();
 function hitTest(x,y){
   const inside=el=>{const b=el.getBoundingClientRect();return x>=b.left&&x<b.right&&y>=b.top&&y<b.bottom;};
   if(inside($('settingsButton'))||inside($('timerBadge'))||(!$('bubble').classList.contains('hidden')&&inside($('bubble'))))return true;
+  if(state?.settings.character==='owl')return owl.hitTest(x,y);
   if(!maskReady)return false;
   const b=image.getBoundingClientRect(), size=Math.min(b.width,b.height);
   const px=Math.floor((x-b.left-(b.width-size)/2)*500/size),py=Math.floor((y-b.top-(b.height-size)/2)*500/size);
@@ -210,7 +220,7 @@ $('settingsButton').onclick=()=>window.workFeiBi.openSettings();
 window.workFeiBi.onState(render);
 window.workFeiBi.onPetEvent(e=>{
   if(e?.type==='interaction'){
-    speech=String(e.text||'').replaceAll('啾比',state?.settings.character==='nuonuo'?'糯糯':'啾比');speechUntil=Date.now()+4000;
+    speech=String(e.text||'').replaceAll('啾比',state?.settings.character==='nuonuo'?'糯糯':state?.settings.character==='owl'?'小鸮':'啾比');speechUntil=Date.now()+4000;
     interactionKind=['pat','feed'].includes(e.sound)?e.sound:'';
     pose(e.motion,behavior.duration(e.motion,e.duration));
     if(state?.settings.interactionSounds&&e.sound)sound(e.sound);

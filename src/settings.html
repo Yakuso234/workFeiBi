@@ -6,11 +6,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>workFeiBi 设置</title>
   <link rel="stylesheet" href="settings.css" />
+  <link rel="stylesheet" href="owl.css" />
 </head>
 <body>
   <main>
-    <div class="system-bar"><span>NC // PERSONAL LINK</span><span>V1.2 · ● LOCAL ONLY</span></div>
-    <header><div><small>FOCUS PROTOCOL / 2077</small><h1>workFeiBi<span>_</span></h1><p>夜之城 · 专注陪伴终端</p><b class="tag">EDGERUNNER MODE</b></div><img id="portrait" src="../assets/images/phoebe_1.png" alt="菲比啾比" /></header>
+    <div class="system-bar"><span>NC // PERSONAL LINK</span><span>V1.3 · ● LOCAL ONLY</span></div>
+    <header><div><small>FOCUS PROTOCOL / 2077</small><h1>workFeiBi<span>_</span></h1><p>夜之城 · 专注陪伴终端</p><b class="tag">EDGERUNNER MODE</b></div><img id="portrait" src="../assets/images/phoebe_1.png" alt="菲比啾比" /><div id="owlPortrait" hidden></div></header>
     <p id="storageWarning" class="warning" role="alert" hidden></p>
     <nav class="tabs" aria-label="终端页面"><button data-tab="dashboard" aria-controls="dashboard" aria-pressed="true">01 / 专注舱</button><button data-tab="journal" aria-controls="journal" aria-pressed="false">02 / 任务档案</button><button data-tab="config" aria-controls="config" aria-pressed="false">03 / 参数配置</button><button data-tab="laboratory" aria-controls="laboratory" aria-pressed="false">04 / 动作实验室</button></nav>
     <p id="actionStatus" class="note action-status" role="status" aria-live="polite"></p>
@@ -46,6 +47,12 @@
     <div id="journal" class="tab-panel" hidden>
       <section class="companion-card"><h2 class="section-label">WEEKLY / 最近七天</h2><div id="weekChart" class="week-chart"></div><p class="note">只统计完整结束的学习轮次，跳过与重置不计入。计时包含系统休眠，不代表实际学习监测。</p></section>
       <section class="companion-card"><h2 class="section-label">MISSIONS / 给今天一个小目标</h2><form id="taskForm"><input id="taskText" maxlength="100" placeholder="例如：完成两道数组题" aria-label="新任务" required /><button type="submit">＋ 添加</button></form><p id="taskStatus" class="note" role="status"></p><ul id="taskList"></ul></section>
+      <section class="companion-card export-card">
+        <h2 class="section-label">DATA PORT / 带走你的小进步 <span>本机导出</span></h2>
+        <p class="note">CSV 汇总最近 90 个已记录日期的完整专注轮次和计时；JSON 还包含当前任务文字与三个角色共享的陪伴成长数据。只导出到你选择的位置，不含声音文件，也不会上传云端。分享 JSON 前，请检查任务文字中的私人信息。</p>
+        <div class="export-actions"><button data-export="csv">↓ 导出每日统计 CSV</button><button data-export="json">↓ 导出完整记录 JSON</button></div>
+        <p id="exportStatus" class="note" role="status" aria-live="polite">用于查看或备份，不会改变现有记录；暂不支持重新导入。</p>
+      </section>
     </div>
     <div id="config" class="tab-panel" hidden>
     <h2 class="section-label">03 / PROTOCOL SETTINGS</h2>
@@ -58,7 +65,7 @@
       <label>桌宠大小（%）<input id="petScale" type="range" min="70" max="150" step="5" /><output id="petScaleValue">100%</output></label>
     </section>
     <section class="switches">
-      <label class="wide-field">角色 <select id="character"><option value="phoebe">菲比啾比</option><option value="nuonuo">弗糯糯</option></select></label>
+      <label class="wide-field">角色 <select id="character"><option value="phoebe">菲比啾比</option><option value="nuonuo">弗糯糯</option><option value="owl">发条鸮 · 原创</option></select></label>
       <label class="wide-field"><input id="soundEnabled" type="checkbox" /> 开启角色声音与提醒音效</label>
       <label><input id="idleMotion" type="checkbox" /> 自动播放待机动作</label>
       <label>待机频率 <select id="idleFrequency"><option value="calm">安静一点</option><option value="normal">自然陪伴</option><option value="lively">活泼一点</option></select></label>
@@ -66,10 +73,11 @@
       <label><input id="interactionSounds" type="checkbox" /> 互动时播放角色声音</label>
       <label><input id="reducedMotion" type="checkbox" /> 减少大幅动作与闪动</label>
       <label><input id="impactEnabled" type="checkbox" /> 生气敲屏时显示裂纹特效</label>
-      <label>形象 <select id="outfit"><option value="1">戴帽啾比</option><option value="0">摘帽啾比</option><option value="2">节日啾比</option></select></label>
+      <label>菲比形象 <select id="outfit" aria-describedby="outfitNote"><option value="1">戴帽啾比</option><option value="0">摘帽啾比</option><option value="2">节日啾比</option></select></label>
       <label>音量 <input id="volume" type="range" min="0" max="100" /></label>
       <label>每日目标（轮）<input id="dailyGoal" type="number" min="1" max="20" /></label>
     </section>
+    <p id="outfitNote" class="note">换装只应用于菲比，切换角色不会丢失你的换装选择。发条鸮是原创矢量机械伙伴，带独立的翅膀、脚和眼睛动作。</p>
     <button id="save" class="save">保存设置</button>
     <div class="voice-actions"><button id="preview">试听当前角色音效</button><button id="importVoice">导入当前角色音效</button></div>
     <p id="voiceSource" class="note"></p>
@@ -93,10 +101,13 @@
         </div>
         <p id="labStatus" class="lab-status" role="status" aria-live="polite">等待你的动作指令。</p>
         <p class="note">生气预览遵循声音、裂纹及减少动态设置；不会触发真正的到时提醒。已有学习或休息提醒时，请先确认提醒。</p>
+        <p class="note model-note">模型说明：菲比与糯糯使用高清姿势图、局部眨眼和整体动效；原创发条鸮使用可分层运动的矢量模型。新增模型不会替换原有两个角色。</p>
       </section>
     </div>
     <footer><b>STAY FOCUSED. STAY HUMAN.</b><br>拖动移动 · 单击互动/确认 · 双击设置 · 右键菜单<br>Ctrl+Shift+F 隐藏/显示 · 关闭终端后桌宠继续陪伴<br>非官方同人终端 · 角色与声音来源见随附 ASSET-SOURCES.md</footer>
   </main>
+  <script src="characters.js"></script>
+  <script src="owl.js"></script>
   <script src="settings.js"></script>
 </body>
 </html>

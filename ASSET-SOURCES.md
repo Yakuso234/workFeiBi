@@ -2,6 +2,12 @@
 
 本项目为本地个人同人桌宠，非官方产品。
 
+## 原创发条鸮
+
+v1.3 的发条鸮由 `src/owl.js` 内的 SVG 和 `src/owl.css` 关节动效代码绘制。翅膀、脚、眼皮、头部及后背为独立图层，不使用第三方人物位图或采样语音；默认电子提示音由 Web Audio 合成。此项与下述菲比/弗糯糯素材来源分开记录，不将既有素材的许可自动套用于新形象。
+
+## 菲比原始素材
+
 - 原始 `assets/images/phoebe_0.png`、`phoebe_1.png`、`phoebe_2.png` 与 `assets/audio/phoebe_chubby_0.mp3`：Genius-Society/phoebe_chubby，https://github.com/Genius-Society/phoebe_chubby 。仓库许可证 CC BY-NC-SA 4.0，完整文本保留于 ASSET-LICENSE.txt。原 README 注明表情来自库街区，角色权利归 KURO GAMES；语音来源包括 BV1PAPSzuEQ8、BV1EcPaz2EY7、BV1cZ5L6DEQN、BV19mGp6QEs1、BV1XD9FBdEg8、BV1upLm6oEEt 及 https://soundinstants.com/zh/sound/phoebechubby 。原始文件未修改。
 
 保留三张 500×500 透明图与 `phoebe_chubby_0.mp3`。原文件像素未改动，眨眼覆盖、位移和旋转由程序实现。没有原作者背面素材；当前后视图为下述生成补绘，不把镜像正面称为背面，也不把图片放大称为原生高清。

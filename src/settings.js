@@ -5,6 +5,29 @@ const motionNames = {blink:'眨眨眼',wave:'挥挥手',kick:'踢踢脚',stretch
 let currentState;
 let journalSignature='';
 let badgeSignature='';
+let owlPortrait;
+
+function characterName(id) {
+  return window.PetCharacters.name(id);
+}
+
+function renderPortrait(settings) {
+  const preview = document.getElementById('portrait');
+  const owlContainer = document.getElementById('owlPortrait');
+  const isOwl = settings.character === 'owl';
+  preview.hidden = isOwl;
+  owlContainer.hidden = !isOwl;
+  if (isOwl) {
+    if (!owlPortrait) {
+      owlPortrait = window.ClockworkOwl.create(owlContainer);
+      owlPortrait.setPose('idle', true);
+    }
+    return;
+  }
+  const portrait = settings.character === 'nuonuo' ? '../assets/images/nuonuo_front.png' : `../assets/images/phoebe_${settings.outfit}.png`;
+  preview.alt = characterName(settings.character);
+  if (preview.getAttribute('src') !== portrait) preview.src = portrait;
+}
 
 function formatTime(seconds) {
   const remaining = Math.floor(Math.max(0, seconds));
@@ -15,21 +38,18 @@ function formatTime(seconds) {
 function render(state, fillForm = false) {
   currentState = state;
   const { timer, settings } = state;
-  const characterName = settings.character === 'nuonuo' ? '弗糯糯' : '菲比啾比';
+  const name = characterName(settings.character);
   document.documentElement.dataset.reducedMotion=String(Boolean(settings.reducedMotion));
   document.getElementById('bond').textContent = `本次互动 ${state.companion?.count || 0} 次`;
-  document.getElementById('companionStatus').textContent = (state.companion?.message || '我在这里陪你。').replaceAll('啾比',settings.character==='nuonuo'?'糯糯':'啾比');
+  document.getElementById('companionStatus').textContent = (state.companion?.message || '我在这里陪你。').replaceAll('啾比', settings.character === 'nuonuo' ? '糯糯' : settings.character === 'owl' ? '小鸮' : '啾比');
   renderCompanion(state.companion);
-  const preview=document.getElementById('portrait');
-  const portrait=settings.character==='nuonuo'?'../assets/images/nuonuo_front.png':`../assets/images/phoebe_${settings.outfit}.png`;
-  preview.alt=characterName;
-  const voiceSource = state.voices?.[settings.character] ? '已导入的本机音效' : settings.character === 'nuonuo' ? (state.voices?.localNuonuo ? '本机糯糯短音效' : '本机中文语音 / 合成提示音') : '菲比角色音效 / 本机中文语音';
-  document.getElementById('characterNote').textContent=`${characterName} ONLINE · ${voiceSource}`;
-  document.getElementById('voiceSource').textContent=`当前已保存角色：${characterName} · ${voiceSource}。切换角色后请先保存，再试听或导入。`;
-  document.getElementById('labCharacter').textContent=characterName;
-  document.getElementById('importVoice').textContent=`导入${settings.character==='nuonuo'?'弗糯糯':'菲比'}音效`;
+  renderPortrait(settings);
+  const voiceSource = state.voices?.[settings.character] ? '已导入的本机音效' : settings.character === 'owl' ? '原创合成电子铃音' : settings.character === 'nuonuo' ? (state.voices?.localNuonuo ? '本机糯糯短音效' : '本机中文语音 / 合成提示音') : '菲比角色音效 / 本机中文语音';
+  document.getElementById('characterNote').textContent=`${name} ONLINE · ${voiceSource}`;
+  document.getElementById('voiceSource').textContent=`当前已保存角色：${name} · ${voiceSource}。切换角色后请先保存，再试听或导入。`;
+  document.getElementById('labCharacter').textContent=name;
+  document.getElementById('importVoice').textContent=`导入${name}音效`;
   document.getElementById('turnButton').hidden=false;
-  if(preview.getAttribute('src')!==portrait)preview.src=portrait;
   document.getElementById('phase').textContent = timer.reminding ? '等待确认' : (timer.phase === 'study' ? '学习阶段' : '休息阶段');
   document.getElementById('time').textContent = formatTime(timer.remaining);
   document.getElementById('toggle').textContent = timer.reminding ? '确认并继续' : timer.running ? '暂停' : (timer.phase === 'study' ? '开始专注' : '开始休息');
@@ -112,6 +132,23 @@ document.querySelectorAll('[data-tab]').forEach(button=>button.addEventListener(
   document.querySelectorAll('[data-tab]').forEach(tab=>tab.setAttribute('aria-pressed',String(tab===button)));
 }));
 
+document.querySelectorAll('[data-export]').forEach(button => {
+  button.addEventListener('click', async () => {
+    const status = document.getElementById('exportStatus');
+    const buttons = document.querySelectorAll('[data-export]');
+    buttons.forEach(item => { item.disabled = true; });
+    status.textContent = '请选择保存位置……';
+    try {
+      const result = await window.workFeiBi.exportRecords(button.dataset.export);
+      status.textContent = result.canceled ? '已取消导出，记录未改变。' : `已导出：${result.filename}。文件仅保存在你选择的本机位置。`;
+    } catch {
+      status.textContent = '导出没有完成，请检查保存位置是否可写，并保留对应的 .csv 或 .json 扩展名。现有记录未改变。';
+    } finally {
+      buttons.forEach(item => { item.disabled = false; });
+    }
+  });
+});
+
 async function timerAction(action) {
   try {
     const next = await window.workFeiBi.timerAction(action);
@@ -153,7 +190,7 @@ document.querySelectorAll('[data-motion]').forEach(button => {
     try {
       const next = await window.workFeiBi.previewAction(button.dataset.motion);
       if (next?.timer) render(next);
-      const character = currentState?.settings.character === 'nuonuo' ? '弗糯糯' : '菲比啾比';
+      const character = characterName(currentState?.settings.character);
       status.textContent = `已发送「${motionNames[button.dataset.motion]}」预览，看看桌面上的${character}吧。`;
     } catch {
       status.textContent = currentState?.timer.reminding ? '现在有到时提醒，请先确认提醒，再预览动作。' : '暂时没能播放这个动作，请稍后再试。';
