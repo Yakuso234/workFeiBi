@@ -17,3 +17,10 @@ test('character ids reject arbitrary values and the shared catalog is immutable'
   assert.equal(Object.isFrozen(characters.list),true);
   assert.ok(characters.list.every(Object.isFrozen));
 });
+
+test('转身能力遵循实际角色与服装背面，不把替代外观正面当背面',()=>{
+  assert.equal(characters.canTurn({character:'phoebe',outfit:1}),true);
+  for(const outfit of [0,2,undefined,'1',null])assert.equal(characters.canTurn({character:'phoebe',outfit}),false);
+  for(const character of ['nuonuo','owl'])assert.equal(characters.canTurn({character}),true);
+  for(const settings of [null,{}, {character:'miku'},{character:'unknown'},{character:'__proto__'}])assert.equal(characters.canTurn(settings),false);
+});

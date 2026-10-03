@@ -10,7 +10,8 @@
   const valid=id=>typeof id==='string'&&ids.includes(id);
   const name=id=>list.find(character=>character.id===id)?.name||list[0].name;
   const get=id=>list.find(character=>character.id===id)||list[0];
-  const api=Object.freeze({list,ids,valid,name,get});
+  const canTurn=(settings={})=>Boolean(settings&&valid(settings.character)&&get(settings.character).supportsBack&&(settings.character!=='phoebe'||settings.outfit===1));
+  const api=Object.freeze({list,ids,valid,name,get,canTurn});
   if(typeof module==='object'&&module.exports)module.exports=api;
   else scope.PetCharacters=api;
 })(typeof window==='object'?window:globalThis);

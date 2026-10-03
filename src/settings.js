@@ -50,7 +50,7 @@ function render(state, fillForm = false) {
   document.getElementById('voiceSource').textContent=`当前已保存角色：${name} · ${voiceSource}。切换角色后请先保存，再试听或导入。`;
   document.getElementById('labCharacter').textContent=name;
   document.getElementById('importVoice').textContent=`导入${name}音效`;
-  const supportsBack=window.PetCharacters.get(settings.character).supportsBack;
+  const supportsBack=window.PetCharacters.canTurn(settings);
   document.getElementById('turnButton').hidden=!supportsBack;
   document.querySelector('[data-motion="turn"]').hidden=!supportsBack;
   for(const [action,text] of Object.entries({wave:settings.character==='miku'?'挠挠头':'挥挥手',kick:settings.character==='miku'?'开心跳跳':'踢踢脚',stretch:settings.character==='miku'?'起身伸展':'伸懒腰'})){

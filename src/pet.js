@@ -2,6 +2,7 @@ const $ = id => document.getElementById(id);
 const root = $('petRoot'), stage = $('petStage'), image = $('petImage');
 let state, audio, dragging = false, dragged = false, start, clickTimer;
 let motion = '', motionUntil = 0, lastHit = true, maskReady = false, idleLoop;
+let petVisible=true;
 let speech='', speechUntil=0;
 let audioContext,tones=[];
 let soundRequest=0;
@@ -10,6 +11,7 @@ let speechCancel, motionStarted=0, interactionKind='',motionAutomatic=false;
 const behavior=window.PetBehavior,idleBag=new behavior.IdleBag();
 const characters=window.PetCharacters,owlModel=$('owlModel'),owl=window.ClockworkOwl.create(owlModel);
 const mikuModel=$('mikuModel'),miku=window.MikuPet.create(mikuModel);
+const rasterModel=$('rasterModel'),raster=window.RasterPetMotion.create(rasterModel,{image});
 const faceCanvas=$('faceOverlay'),faceCtx=faceCanvas.getContext('2d');
 const mask = document.createElement('canvas');
 mask.width = 500; mask.height = 500;
@@ -22,21 +24,26 @@ function paintMotion() {
   if(!state)return;
   const t=state.timer, s=state.settings;
   const active=t.angry?'angry':dragging?'lifted':Date.now()<motionUntil?motion:s.idleMotion&&!s.reducedMotion&&!behavior.quiet(s,t)?'idle':'';
-  const isOwl=s.character==='owl',isMiku=s.character==='miku';
-  const classes=`pet-stage ${active}${isOwl?' owl-character':isMiku?' sprite-character':''}`;
-  if(stage.className!==classes)stage.className=classes;
+  const isOwl=s.character==='owl',isMiku=s.character==='miku',isRaster=!isOwl&&!isMiku;
   root.classList.toggle('reduced-motion',Boolean(s.reducedMotion));
+  root.classList.toggle('pet-hidden',!petVisible);
   $('emotion').textContent=t.angry?'💢':active==='sleep'?'z Z':active==='happy'?'♡':'';
-  image.hidden=isOwl||isMiku;faceCanvas.hidden=isOwl||isMiku;owlModel.hidden=!isOwl;mikuModel.hidden=!isMiku;
-  owl.setPose(isOwl?active:'',s.reducedMotion);
+  image.hidden=isOwl||isMiku;faceCanvas.hidden=isOwl||isMiku;owlModel.hidden=!isOwl;mikuModel.hidden=!isMiku;rasterModel.hidden=!isRaster;
+  owl.setPose(isOwl?active:'',s.reducedMotion||!petVisible);
   owl.setAppearance({palette:s.owlPalette,accessory:s.owlAccessory});
-  miku.setVisible(isMiku);miku.setPose(isMiku?active:'',s.reducedMotion);
+  miku.setVisible(isMiku&&petVisible);miku.setPose(isMiku?active:'',s.reducedMotion);
   if(!isOwl&&!isMiku){
     const poseName=active==='sleep'?'sleep':active==='turn'?'back':active==='angry'?'angry':'front';
-    const limbPose=['wave','kick','stretch'].includes(active);
+    // Waving uses the raised-hand portrait; kick/stretch deform the normal
+    // portrait's feet/arms instead of reusing the same full-image wave effect.
+    const limbPose=active==='wave';
     const portrait=s.character==='nuonuo'?`../assets/images/nuonuo_${active==='sleep'?'drowsy':limbPose?'wave':poseName}.png`:s.outfit!==1?`../assets/images/phoebe_${s.outfit}.png`:active==='sleep'?'../assets/images/phoebe_sleep.png':active==='angry'?'../assets/images/phoebe_angry.png':active==='turn'?'../assets/images/phoebe_back.png':limbPose?'../assets/images/phoebe_wave.png':`../assets/images/phoebe_${s.outfit}.png`;
-    if(image.getAttribute('src')!==portrait){maskReady=false;image.src=portrait;}
+    if(image.getAttribute('src')!==portrait){maskReady=false;image.src=portrait;raster.refresh();}
   }
+  raster.setVisible(isRaster&&petVisible);
+  raster.setPose({pose:isRaster?active:'',character:s.character,outfit:s.outfit,reducedMotion:s.reducedMotion,startedAt:motionStarted});
+  const classes=`pet-stage ${active}${isOwl?' owl-character':isMiku?' sprite-character':' raster-character'}`;
+  if(stage.className!==classes)stage.className=classes;
   const effect=Date.now()<motionUntil&&!t.angry?interactionKind:'';
   $('interactionEffect').className=`interaction-effect ${effect}`;
   $('interactionEffect').textContent=effect==='pat'?'♡':'';
@@ -44,10 +51,10 @@ function paintMotion() {
 }
 function paintFace(active){
   faceCtx.clearRect(0,0,500,500);
-  if(['owl','miku'].includes(state.settings.character))return;
+  if(!petVisible||['owl','miku'].includes(state.settings.character))return;
   // These masks are fitted to the normal front portraits only. Never paint
   // artificial eyes on the alternate sleep/back/raised-arm illustrations.
-  if(active!=='blink'||state.settings.reducedMotion)return;
+  if(active!=='blink'||state.settings.reducedMotion||!maskReady||!image.complete||!image.naturalWidth||image.currentSrc!==image.src)return;
   const elapsed=Date.now()-motionStarted;
   if(!((elapsed>=100&&elapsed<280)||(elapsed>=440&&elapsed<600)))return;
   const nuonuo=state.settings.character==='nuonuo';
@@ -147,8 +154,9 @@ function render(next) {
   state=next;
   const {timer:t,settings:s}=state;
   const characterChanged=before&&before.settings.character!==s.character;
-  if(characterChanged){motion='';motionUntil=0;motionAutomatic=false;speech='';speechUntil=0;interactionKind='';maskReady=false;if(s.character!=='owl'&&image.complete&&image.naturalWidth)image.onload();}
+  if(characterChanged){clearTimeout(clickTimer);clickTimer=null;motion='';motionUntil=0;motionAutomatic=false;speech='';speechUntil=0;interactionKind='';maskReady=false;if(s.character!=='owl'&&image.complete&&image.naturalWidth)image.onload();}
   if(motionAutomatic&&(!s.idleMotion||s.reducedMotion||t.reminding||behavior.quiet(s,t)&&motion!=='blink')){motion='';motionUntil=0;}
+  if(t.reminding){speech='';speechUntil=0;interactionKind='';}
   if((before?.timer.reminding&&!t.reminding)||!behavior.canSound(s,t)||characterChanged||before?.voices?.revision!==state.voices?.revision)stopAudio();
   if(before&&(before.settings.idleFrequency!==s.idleFrequency||before.settings.idleMotion!==s.idleMotion||before.settings.focusQuiet!==s.focusQuiet||before.settings.reducedMotion!==s.reducedMotion))scheduleIdle();
   if(audio)audio.volume=s.volume/100;
@@ -171,7 +179,7 @@ setInterval(paintMotion,120);
 function scheduleIdle(){
   clearTimeout(idleLoop);
   idleLoop=setTimeout(()=>{
-    if(state&&!dragging&&Date.now()>=motionUntil){
+    if(state&&petVisible&&!dragging&&Date.now()>=motionUntil){
       const next=idleBag.next(behavior.idlePool(state.settings,state.timer));
       if(next){interactionKind='';pose(next,behavior.duration(next),true);}
     }
@@ -182,7 +190,7 @@ function interact(){if(state?.timer.reminding){window.workFeiBi.petClick();retur
 
 stage.addEventListener('pointerdown',e=>{
   if(e.button!==0)return;
-  start={x:e.screenX,y:e.screenY};dragged=false;dragging=true;
+  start={x:e.screenX,y:e.screenY,id:e.pointerId};dragged=false;dragging=true;
   stage.setPointerCapture(e.pointerId);
   window.workFeiBi.dragStart();paintMotion();
 });
@@ -196,18 +204,24 @@ stage.addEventListener('pointerup',e=>{
   if(clickTimer){clearTimeout(clickTimer);clickTimer=null;window.workFeiBi.openSettings();}
   else clickTimer=setTimeout(()=>{clickTimer=null;interact();},280);
 });
-function cancelDrag(){dragging=false;window.workFeiBi.dragEnd();paintMotion();}
+function cancelDrag(){
+  clearTimeout(clickTimer);clickTimer=null;dragging=false;
+  if(start&&stage.hasPointerCapture(start.id))stage.releasePointerCapture(start.id);
+  window.workFeiBi.dragEnd();paintMotion();
+}
 stage.addEventListener('pointercancel',cancelDrag);
 stage.addEventListener('lostpointercapture',()=>{if(dragging)cancelDrag();});
 window.addEventListener('blur',cancelDrag);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)cancelDrag();});
 
-image.onload=()=>{maskCtx.clearRect(0,0,500,500);maskCtx.drawImage(image,0,0,500,500);maskReady=true;};
+image.onload=()=>{maskCtx.clearRect(0,0,500,500);maskCtx.drawImage(image,0,0,500,500);maskReady=true;raster.refresh();};
 if(image.complete&&image.naturalWidth)image.onload();
 function hitTest(x,y){
   const inside=el=>{const b=el.getBoundingClientRect();return x>=b.left&&x<b.right&&y>=b.top&&y<b.bottom;};
   if(inside($('settingsButton'))||inside($('timerBadge'))||(!$('bubble').classList.contains('hidden')&&inside($('bubble'))))return true;
   if(state?.settings.character==='owl')return owl.hitTest(x,y);
   if(state?.settings.character==='miku')return miku.hitTest(x,y);
+  if(raster.canvas.dataset.ready==='true')return raster.hitTest(x,y);
   if(!maskReady)return false;
   const b=image.getBoundingClientRect(), size=Math.min(b.width,b.height);
   const px=Math.floor((x-b.left-(b.width-size)/2)*500/size),py=Math.floor((y-b.top-(b.height-size)/2)*500/size);
@@ -224,6 +238,11 @@ $('timerBadge').onclick=()=>state?.timer.reminding?window.workFeiBi.petClick():w
 $('settingsButton').onclick=()=>window.workFeiBi.openSettings();
 window.workFeiBi.onState(render);
 window.workFeiBi.onPetEvent(e=>{
+  if(e?.type==='visibility'){
+    petVisible=e.visible===true;
+    if(!petVisible){stopAudio();cancelDrag();}else paintMotion();
+    return;
+  }
   if(['interaction','game','celebration'].includes(e?.type)){
     speech=String(e.text||'').replaceAll('啾比',characters.get(state?.settings.character).nickname);speechUntil=Date.now()+4000;
     const effect=e.effect||e.sound;interactionKind=['pat','feed'].includes(effect)?effect:'';
@@ -237,7 +256,7 @@ window.workFeiBi.onPetEvent(e=>{
     if(e.motion==='angry')sound('angry');
     if(state)render(state);return;
   }
-  if(['reminder','angry','preview'].includes(e)){interactionKind='';pose(e==='angry'?'angry':'hop',2000);sound(e);}
-  if(e==='acknowledged'){stopAudio();interactionKind='';pose('happy',1600);}
+  if(['reminder','angry','preview'].includes(e)){interactionKind='';speech='';speechUntil=0;motionAutomatic=false;pose(e==='angry'?'angry':'hop',2000);sound(e);}
+  if(e==='acknowledged'){stopAudio();interactionKind='';speech='';speechUntil=0;pose('happy',1600);}
 });
 window.workFeiBi.getState().then(next=>{render(next);scheduleIdle();});

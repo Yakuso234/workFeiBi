@@ -237,6 +237,7 @@ module.exports=async(pet,getSettings,openSettings,action,state,timer,context)=>{
  }
  await require('./smoke-v14')({pet,w,action,state,timer,context,waitFor,capture});
  await require('./smoke-cadence')({pet,w,action,state,timer,context,waitFor,capture});
+ await require('./smoke-raster')({pet,w,action,state,timer,context,waitFor,capture});
  assert.equal(errors.length,0,errors.join('\n'));
- console.log('SMOKE PASS: four characters/real Miku frames/alpha, owl wardrobe/joints, reminders/long-break cadence/paused recovery, task celebrations/encouragement/deadline priority, CSV/JSON export, persistent companion, bounded arcade/cancel/Esc, native impact, audio and responsive console');
+ console.log('SMOKE PASS: local Phoebe/Nuonuo arm/foot/head/alpha/hidden-stop motion, four characters/real Miku frames, owl wardrobe/joints, reminders/long-break cadence/paused recovery, task celebrations/encouragement/deadline priority, CSV/JSON export, persistent companion, bounded arcade/cancel/Esc, native impact, audio and responsive console');
 };

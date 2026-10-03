@@ -69,7 +69,7 @@ function previewAction(motion){
   const dueEvent=timer.update();recordCompletion();
   if(dueEvent){persist();broadcast(dueEvent);}
   if(timer.reminding)throw new Error('请先确认到期提醒，再预览动作。');
-  if(motion==='turn'&&!characters.get(timer.settings.character).supportsBack)throw new Error('当前角色没有背面素材');
+  if(motion==='turn'&&!characters.canTurn(timer.settings))throw new Error('当前角色或外观没有背面素材');
   clearImpact();showPet();
   broadcast({type:'preview-action',motion,duration:previewDurations[motion]});
   if(motion==='angry')void showImpact();
@@ -85,7 +85,7 @@ function bounded(bounds){
   return {...bounds,x:Math.round(Math.max(area.x,Math.min(bounds.x,area.x+area.width-bounds.width))),y:Math.round(Math.max(area.y,Math.min(bounds.y,area.y+area.height-bounds.height)))};
 }
 function showPet(){if(pet&&!pet.isDestroyed()){pet.setBounds(bounded(pet.getBounds()));pet.showInactive();}}
-function hidePet(){clearImpact();if(pet&&!pet.isDestroyed())pet.hide();}
+function hidePet(){endDrag();clearImpact();if(pet&&!pet.isDestroyed())pet.hide();}
 function options(){return {preload:path.join(__dirname,'preload.js'),contextIsolation:true,nodeIntegration:false,sandbox:true,backgroundThrottling:false};}
 function secure(window){
   window.webContents.setWindowOpenHandler(()=>({action:'deny'}));
@@ -105,7 +105,7 @@ function action(name){
   const dueEvent=timer.update();recordCompletion();
   const gameBefore=advanceGame();
   if(name.startsWith('interact:')){
-    if(name==='interact:turn'&&!characters.get(timer.settings.character).supportsBack){companion.message='这个角色还没有背面动作，试试其他互动吧。';if(dueEvent||gameBefore)persist();broadcast(dueEvent||gameBefore);return;}
+    if(name==='interact:turn'&&!characters.canTurn(timer.settings)){companion.message='这个角色或外观还没有背面动作，试试其他互动吧。';if(dueEvent||gameBefore)persist();broadcast(dueEvent||gameBefore);return;}
     const event=companion.interact(name.slice(9),timer.reminding);
     if(event||dueEvent||gameBefore)showPet();if(event||dueEvent||gameBefore)persist();broadcast(dueEvent||gameBefore||event);return;
   }
@@ -125,7 +125,7 @@ function menu(){return Menu.buildFromTemplate([
   {label:timer.reminding?'确认提醒，进入下一轮':timer.running?'暂停计时':'开始 / 继续计时',click:()=>action('toggle')},
   {label:'重置本轮',click:()=>action('reset')},{label:'跳过本轮',click:()=>action('skip')},
   {type:'separator'},{label:'♡ 摸摸头',click:()=>action('interact:pat')},{label:'◇ 喂点心',click:()=>action('interact:feed')},{label:'↗ 一起伸懒腰',click:()=>action('interact:stretch')},
-  {label:'☾ 打个盹',click:()=>action('interact:sleep')},{label:'↻ 转身看看',enabled:characters.get(timer.settings.character).supportsBack,click:()=>action('interact:turn')},{label:'✦ 给我加油',click:()=>action('interact:cheer')},
+  {label:'☾ 打个盹',click:()=>action('interact:sleep')},{label:'↻ 转身看看',enabled:characters.canTurn(timer.settings),click:()=>action('interact:turn')},{label:'✦ 给我加油',click:()=>action('interact:cheer')},
   {type:'separator'},{label:'隐藏桌宠（托盘可恢复）',click:hidePet},{label:'退出 workFeiBi',click:()=>app.quit()},
 ]);}
 function endDrag(){
@@ -240,6 +240,10 @@ else{
     pet=new BrowserWindow({...bounded({...size,x:position[0],y:position[1]}),show:false,transparent:true,frame:false,resizable:false,maximizable:false,fullscreenable:false,alwaysOnTop:true,skipTaskbar:true,hasShadow:false,backgroundColor:'#00000000',webPreferences:options()});
     secure(pet);pet.setAlwaysOnTop(true,'floating');pet.once('ready-to-show',showPet);
     pet.on('close',event=>{if(!quitting){event.preventDefault();hidePet();}});
+    // backgroundThrottling is off for timely reminders, so Page Visibility
+    // stays visible even for a hidden window. Explicitly stop renderers.
+    const syncVisibility=()=>{const visible=pet.isVisible()&&!pet.isMinimized();if(!visible)endDrag();if(!pet.webContents.isDestroyed())pet.webContents.send('pet-event',{type:'visibility',visible});};
+    for(const event of ['hide','show','minimize','restore'])pet.on(event,syncVisibility);
     await pet.loadFile(path.join(__dirname,'pet.html'));
     tray=new Tray(nativeImage.createFromPath(path.join(__dirname,'../assets/images/phoebe_1.png')).resize({width:32,height:32}));
     tray.setToolTip('workFeiBi · 双击打开设置');tray.on('double-click',()=>{showPet();openSettings();});

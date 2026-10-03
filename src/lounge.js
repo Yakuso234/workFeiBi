@@ -13,7 +13,7 @@
       if(character.id==='owl'){model=scope.ClockworkOwl.create(art);model.setPose('idle',true);}
       else{art.src=character.portrait||`../assets/images/${character.id==='nuonuo'?'nuonuo_front':'phoebe_1'}.png`;art.alt=character.name;art.loading='lazy';}
       const title=document.createElement('h3'),kind=document.createElement('small'),note=document.createElement('p'),button=document.createElement('button');
-      title.textContent=character.name;kind.className='character-kind';kind.textContent=character.kind|| (character.id==='owl'?'ORIGINAL / 分层关节动画':'FAN ART / 姿势图 + 程序动态');
+      title.textContent=character.name;kind.className='character-kind';kind.textContent=character.kind|| (character.id==='owl'?'ORIGINAL / 分层关节动画':'FAN ART / 姿势图 + 局部形变');
       note.textContent=character.description|| (character.id==='owl'?'独立翅膀、脚、眼皮与真实背面。三套配色和两款头饰，矢量模型放大仍清晰。':character.id==='nuonuo'?'灰青头发、粉蓝呆眼的小伙伴。当前为高清补绘试用形象，可在本机导入糯糯音效。':'原始啾比形象，三种外观与补绘姿势。原素材来源 Genius-Society，CC BY-NC-SA 4.0。');
       button.textContent='出场';button.dataset.selectCharacter=character.id;button.onclick=()=>select(character.id);
       card.append(art,title,kind,note,button);list.append(card);cards.set(character.id,{card,button,art,model});
